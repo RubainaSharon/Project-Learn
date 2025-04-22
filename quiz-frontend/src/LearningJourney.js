@@ -1,0 +1,258 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import Navbar from "./navbar";
+import axios from "axios";
+import confetti from "canvas-confetti";
+
+export default function LearningJourney() {
+  const { skill } = useParams();
+  const username = localStorage.getItem("username");
+  const [learningJourney, setLearningJourney] = useState({ chapters: [] });
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [lastGeneratedTime, setLastGeneratedTime] = useState(null); // Track last generation time
+  const [generateMessage, setGenerateMessage] = useState(""); // Message for generation restriction
+  const [showCelebration, setShowCelebration] = useState(false); // State for celebration
+
+  useEffect(() => {
+    const fetchJourney = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(`http://localhost:8000/user-data/${username}`);
+        const skillData = res.data.skills.find((s) => s.skill === skill);
+        if (skillData && skillData.learning_journey) {
+          setLearningJourney(skillData.learning_journey);
+          setLastGeneratedTime(Date.now()); // Initialize to prevent immediate generation
+        } else {
+          setError("No learning journey found for this skill.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch learning journey", err);
+        setError("Failed to load learning journey. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (username && skill) {
+      fetchJourney();
+    } else {
+      setError("User or skill not specified.");
+      setLoading(false);
+    }
+  }, [skill, username]);
+
+  const handleProgressUpdate = async (index, completed) => {
+    try {
+      await axios.post("http://localhost:8000/update-progress", {
+        username,
+        skill,
+        chapter_index: index,
+        completed,
+      });
+      const updated = { ...learningJourney };
+      updated.chapters[index].completed = completed;
+      setLearningJourney(updated);
+
+      // Trigger celebration if Chapter 10 is marked complete
+      if (index === 9 && completed) {
+        setShowCelebration(true);
+        confetti({
+          particleCount: 200,
+          spread: 70,
+          origin: { y: 0.6 },
+          duration: 3000,
+        });
+        setTimeout(() => {
+          setShowCelebration(false);
+        }, 5000);
+      }
+    } catch (err) {
+      console.error("Failed to update progress", err);
+      setError("Failed to update progress. Please try again.");
+    }
+  };
+
+  const generateNextChapter = async () => {
+    const now = Date.now();
+    const timeSinceLastGenerated = lastGeneratedTime ? now - lastGeneratedTime : Infinity;
+    const minDelay = 60 * 1000; // 60 seconds in milliseconds
+
+    if (timeSinceLastGenerated < minDelay) {
+      setGenerateMessage(
+        `Can be generated only after a minute. Read this chapter first. (${Math.ceil(
+          (minDelay - timeSinceLastGenerated) / 1000
+        )}s remaining)`
+      );
+      setTimeout(() => {
+        setGenerateMessage("");
+      }, minDelay - timeSinceLastGenerated);
+      return;
+    }
+
+    const nextIndex = currentChapterIndex + 1;
+    if (nextIndex >= learningJourney.chapters.length) {
+      setError("No more chapters to generate.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      const res = await axios.post("http://localhost:8000/generate-next-chapter", {
+        username,
+        skill,
+        chapter_index: nextIndex,
+      });
+      const updated = { ...learningJourney };
+      updated.chapters[nextIndex] = res.data.chapter;
+      setLearningJourney(updated);
+      setCurrentChapterIndex(nextIndex);
+      setLastGeneratedTime(now);
+      setGenerateMessage("");
+    } catch (err) {
+      console.error("Failed to generate next chapter", err);
+      setError("Failed to generate next chapter. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const current = learningJourney.chapters[currentChapterIndex] || {};
+  const isUnlocked = !!current.script || currentChapterIndex === 0;
+  const canShow = currentChapterIndex === 0 || learningJourney.chapters[currentChapterIndex - 1]?.completed;
+
+  // Clean script for Chapter 1 only
+  const cleanedScript =
+    currentChapterIndex === 0 && current.script
+      ? current.script
+          .replace(/\*\*/g, "") // Remove bold markers
+          .replace(/#/g, "") // Remove headers
+          .replace(/"/g, "") // Remove quotes
+          .trim()
+      : current.script;
+
+  if (loading && !generateMessage) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error && !generateMessage) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p className="text-red-500 text-xl">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white pt-24 px-4 pb-10">
+      <Navbar />
+      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-8">
+        {/* Sidebar */}
+        <aside className="custom-scroll w-full lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4 h-[calc(100vh-7rem)] overflow-y-auto sticky top-28">
+          <h2 className="text-3xl font-bold mb-4 text-center text-purple-400">Chapters</h2>
+          {learningJourney.chapters.length > 0 ? (
+            learningJourney.chapters.map((ch, i) => (
+              <div
+                key={i}
+                className={`p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
+                  i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
+                }`}
+                onClick={() => setCurrentChapterIndex(i)}
+              >
+                <h3 className="text-xl font-bold">Chapter {ch.chapter || i + 1}</h3>
+                <ul className="text-sm mt-2 text-gray-300 list-disc ml-5">
+                  {(ch.topics || ["Topic A", "Topic B", "Topic C"]).map((t, idx) => (
+                    <li key={idx}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-400">No chapters available.</p>
+          )}
+        </aside>
+
+        {/* Main Content */}
+        <main className="w-full lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-10 shadow-xl">
+          {canShow && isUnlocked ? (
+            <>
+              <h2 className="text-4xl font-bold text-blue-300 mb-4">
+                Chapter {current.chapter || currentChapterIndex + 1}: {current.title || "Untitled"}
+              </h2>
+              <p className="text-xl mb-4 text-gray-300">{current.description || "No description available."}</p>
+              <p className="text-lg mb-4">
+                Topics: <span className="text-gray-400">{(current.topics || ["Topic A", "Topic B", "Topic C"]).join(", ")}</span>
+              </p>
+              <div className="text-left">
+                <strong className="text-2xl">Script:</strong>
+                <p className="mt-4 whitespace-pre-wrap text-lg text-gray-200">{cleanedScript || "No script available."}</p>
+              </div>
+              <p className="mt-6 text-lg text-gray-400">
+                <strong>Summary:</strong> {current.summary || "No summary available."}
+              </p>
+              <button
+                onClick={() => handleProgressUpdate(currentChapterIndex, !current.completed)}
+                className={`mt-6 px-6 py-3 text-xl rounded-lg text-white ${
+                  current.completed ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
+                }`}
+                disabled={loading}
+              >
+                {current.completed ? "Mark as Incomplete" : "Mark as Completed"}
+              </button>
+              {current.completed && currentChapterIndex + 1 < learningJourney.chapters.length && (
+                <div className="mt-6">
+                  <button
+                    onClick={generateNextChapter}
+                    className={`mt-4 ml-4 px-6 py-3 text-lg rounded-lg text-white ${
+                      loading || generateMessage ? "bg-gray-600 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+                    }`}
+                    disabled={loading || generateMessage}
+                  >
+                    Generate Next Chapter
+                  </button>
+                  {loading && (
+                    <p className="mt-3 text-sm text-gray-400">
+                      ⏳ Please wait, the chapter is being generated...
+                    </p>
+                  )}
+                  {generateMessage && (
+                    <p className="mt-3 text-sm text-yellow-400">
+                      {generateMessage}
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-xl text-yellow-400">
+              🔒 Complete the previous chapters to unlock this.
+            </p>
+          )}
+        </main>
+      </div>
+
+      {/* Celebration Overlay */}
+      {showCelebration && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="text-center">
+            <h2 className="text-5xl font-extrabold text-white mb-4 animate-bounce">
+              Yay! You've completed the course!
+            </h2>
+            <button
+              onClick={() => setShowCelebration(false)}
+              className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white text-lg rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

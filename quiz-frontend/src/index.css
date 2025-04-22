@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply m-0 bg-gray-100 text-gray-900 font-sans;
+}
+
+/* Hide default cursor */
+* {
+  cursor: none !important;
+}
+
+/* ✨ Smaller custom cursor with softer glow */
+.custom-cursor {
+  width: 15px;               /* Smaller size */
+  height: 15px;
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  background: white;
+  box-shadow: 0 0 4px 2px white; /* Reduced glow */
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  mix-blend-mode: difference;
+}
+
+/* ✨ Smaller trailing particles with reduced glow */
+.cursor-particle {
+  position: fixed;
+  width: 3px;                   /* Smaller size */
+  height: 3px;
+  border-radius: 50%;
+  background: white;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 0 6px 2px white; /* Softer glow */
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+}
+
+/* Normal cursor for input/textarea fields */
+input,
+textarea {
+  user-select: text;
+  cursor: auto !important;
+}
+
+/* Prevent text selection outside inputs */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Scrollbar styling for elements with .custom-scroll */
+.custom-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: #1f1f1f; /* Dark gray track */
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #9333ea; /* Purple thumb */
+  border-radius: 6px;
+}
+
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #9333ea #1f1f1f; /* For Firefox */
+}
