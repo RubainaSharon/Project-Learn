@@ -37,7 +37,7 @@ def get_db():
         db.close()
 
 # Initialize API constants
-GEMINI_API_KEY = "AIzaSyDXFJ6vfjTj8EuTCKLMbGZrylPDkyvy4PY"
+GEMINI_API_KEY = "AIzaSyDXFJ6vfjTj8EuTCKLMbGZrylPDkyvy4PY"  # Replace with your actual API key
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 headers = {"Content-Type": "application/json"}
 
@@ -57,84 +57,153 @@ def get_api_calls_today(db: Session):
 
 def generate_and_store_journey(db: Session, username: str, skill: str, score: int):
     max_retries = 3
-    try:
-        for attempt in range(max_retries):
+    for attempt in range(max_retries):
+        try:
+            prompt = (
+                f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
+                f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
+                f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
+                f"a title, a brief description, specific topics, online resources (with URLs), a detailed script (at least 100 words) "
+                f"with examples and explanations, and a summary of key takeaways. "
+                f"**Return the response as a valid JSON object with the following structure:** "
+                f"{{'level': 'string', 'chapters': [{{'chapter': number, 'title': 'string', 'description': 'string', 'topics': ['string'], "
+                f"'resources': ['string'], 'script': 'string', 'summary': 'string'}}]}}. "
+                f"Ensure the response is enclosed in triple backticks with the 'json' identifier, like this: ```json\n{{...}}\n```."
+            )
+
+            data = {"contents": [{"parts": [{"text": prompt}]}]}
             try:
-                prompt = (
-                    f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
-                    f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
-                    f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
-                    f"a title, a brief description, specific topics, online resources (with URLs), a detailed script (at least 100 words) "
-                    f"with examples, and a summary of key takeaways. Return the response in valid JSON format with 'level' (string) "
-                    f"and 'chapters' (list of 10 chapters, each with 'chapter', 'title', 'description', 'topics', 'resources', 'script', "
-                    f"and 'summary')."
-                )
-                data = {"contents": [{"parts": [{"text": prompt}]}]}
-                response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=10)
-                logger.debug(f"Attempt {attempt + 1} - Raw API response status: {response.status_code}")
-                logger.debug(f"Attempt {attempt + 1} - Raw API response text: {response.text}")
+                response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=30)
                 response.raise_for_status()
-
-                response_json = response.json()
-                if "candidates" not in response_json or not response_json["candidates"]:
-                    raise ValueError("Invalid API response: Missing 'candidates'")
-                if "content" not in response_json["candidates"][0] or "parts" not in response_json["candidates"][0]["content"]:
-                    raise ValueError("Invalid API response: Missing 'content' or 'parts'")
-                
-                journey_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-                logger.debug(f"Attempt {attempt + 1} - Parsed journey text before regex: {journey_text}")
-
-                json_match = re.search(r'```json\n(.*?)\n```', journey_text, re.DOTALL)
-                if json_match:
-                    journey_text = json_match.group(1).strip()
-                    logger.debug(f"Attempt {attempt + 1} - Extracted JSON text: {journey_text}")
-                else:
-                    logger.debug(f"Attempt {attempt + 1} - No JSON block found in response")
-
-                if not journey_text:
-                    raise ValueError("Empty response from API")
-
-                try:
-                    journey = json.loads(journey_text)
-                except json.JSONDecodeError as e:
-                    logger.error(f"JSON parsing error: {e}")
-                    logger.error(f"Invalid journey_text: {journey_text}")
-                    raise ValueError("Invalid JSON format in API response")
-
-                for chapter in journey["chapters"]:
-                    chapter["completed"] = False
-
-                api_call = models.ApiCall(timestamp=datetime.now())
-                db.add(api_call)
-                db.commit()
-                return journey
-
             except requests.exceptions.RequestException as e:
-                logger.error(f"Attempt {attempt + 1} - API Error: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
-                    continue
+                logger.error(f"API request failed: {e}")
                 raise
 
-    except (ValueError, json.JSONDecodeError, requests.exceptions.RequestException) as e:
-        logger.error(f"Final API Error: {e}")
-        level = "Beginner" if score <= 10 else "Intermediate" if score <= 15 else "Advanced"
-        journey = {
-            "level": level,
-            "chapters": [
-                {
-                    "chapter": i + 1,
-                    "title": f"{skill} Chapter {i + 1}",
-                    "description": f"Learn key concepts of {skill}.",
-                    "topics": ["Basics"],
-                    "resources": ["https://example.com"],
-                    "script": f"This is a placeholder script due to API failure: {str(e)}",
-                    "summary": "Key takeaways.",
-                    "completed": False
-                } for i in range(10)
-            ]
-        }
-        return journey
+            # Log the raw response
+            logger.info(f"Raw API Response: {response.text}")
+
+            try:
+                response_json = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to decode JSON from API response: {e}")
+                logger.error(f"Raw API Response: {response.text}")
+                raise
+
+            if "candidates" not in response_json or not response_json["candidates"]:
+                logger.error(f"Invalid API response - Missing candidates: {response_json}")
+                raise ValueError("Invalid API response: Missing 'candidates'")
+
+            if "content" not in response_json["candidates"][0] or "parts" not in response_json["candidates"][0]["content"]:
+                logger.error(f"Invalid API response - Missing content or parts: {response_json}")
+                raise ValueError("Invalid API response: Missing 'content' or 'parts'")
+
+            journey_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+            logger.debug(f"Raw Journey text: {journey_text}")
+
+            # Try to find JSON within code blocks (with optional language specifier like ```json)
+            json_match = re.search(r'```(?:json)?\s*\n([\s\S]*?)\n```', journey_text, re.DOTALL)
+            if json_match:
+                journey_text = json_match.group(1).strip()
+                logger.debug(f"Extracted JSON text from code block: {journey_text}")
+            else:
+                # If no code block, try to extract raw JSON
+                journey_text = journey_text.strip()
+                if journey_text.startswith('{') and journey_text.endswith('}'):
+                    logger.debug(f"Using raw JSON text: {journey_text}")
+                else:
+                    # Try to find a JSON-like substring
+                    start = journey_text.find('{')
+                    end = journey_text.rfind('}') + 1
+                    if start != -1 and end != 0:
+                        journey_text = journey_text[start:end]
+                        logger.debug(f"Extracted potential JSON substring: {journey_text}")
+                    else:
+                        logger.error(f"No valid JSON found in response: {journey_text}")
+                        raise ValueError("No valid JSON found")
+
+            # Parse the extracted text as JSON
+            try:
+                journey = json.loads(journey_text)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to load JSON: {e}, raw text: {journey_text}")
+                raise
+
+            for chapter in journey["chapters"]:
+                chapter["completed"] = False
+
+            api_call = models.ApiCall(timestamp=datetime.now())
+            db.add(api_call)
+            db.commit()
+
+            # Log the generated chapters
+            chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
+            logger.info(f"Generated journey chapters: {chapter_numbers}")
+
+            return journey
+        except Exception as e:
+            logger.exception(f"Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            # If all attempts fail, return a placeholder journey
+            level = "Beginner" if score <= 10 else "Intermediate" if score <= 15 else "Advanced"
+            journey = {
+                "level": level,
+                "chapters": [
+                    {
+                        "chapter": i + 1,
+                        "title": f"{skill} Chapter {i + 1}",
+                        "description": f"Learn key concepts of {skill}.",
+                        "topics": ["Basics"],
+                        "resources": ["https://example.com"],
+                        "script": f"This is a placeholder script due to API failure: {str(e)}",
+                        "summary": "Key takeaways.",
+                        "completed": False
+                    } for i in range(10)
+                ]
+            }
+            # Log the placeholder chapters
+            chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
+            logger.info(f"Generated placeholder journey chapters: {chapter_numbers}")
+            return journey
+
+def generate_next_chapter(db: Session, username: str, skill: str, current_chapter: int):
+    logger.info(f"Starting generate_next_chapter for username={username}, skill={skill}, chapter={current_chapter}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            user_skill = db.query(models.UserSkill).filter(
+                models.UserSkill.username.ilike(username),
+                models.UserSkill.skill.ilike(skill)
+            ).first()
+            if not user_skill or not user_skill.learning_journey:
+                raise HTTPException(status_code=404, detail="No learning journey found")
+
+            journey = user_skill.learning_journey
+            if current_chapter >= len(journey["chapters"]) or current_chapter < 0:
+                raise HTTPException(status_code=400, detail="Invalid chapter index")
+
+            if journey["chapters"][current_chapter]["completed"]:
+                raise HTTPException(status_code=400, detail="Chapter already completed")
+
+            if current_chapter + 1 >= len(journey["chapters"]):
+                raise HTTPException(status_code=400, detail="No more chapters to generate")
+
+            next_chapter_idx = current_chapter + 1
+            # Log the current state of chapters before proceeding
+            chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
+            logger.info(f"Chapters before generating next: {chapter_numbers}")
+
+            # Since the journey already has 10 chapters, return the existing next chapter
+            next_chapter = journey["chapters"][next_chapter_idx]
+            logger.info(f"Returning existing chapter {next_chapter['chapter']}: {next_chapter['title']}")
+            return next_chapter
+        except Exception as e:
+            logger.exception(f"Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise HTTPException(status_code=500, detail="Failed to generate next chapter. Please try again later.")
 
 # Endpoints
 @app.get("/check-username/{username}")
@@ -166,11 +235,13 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
     ).first()
     journey = generate_and_store_journey(db, username, skill, score)
     if user_skill:
+        # Update existing record
         user_skill.score = score
         user_skill.learning_journey = journey
         user_skill.progress = 0.0
         user_skill.last_attempt_date = today
     else:
+        # Create new record
         user_skill = models.UserSkill(
             username=username,
             skill=skill,
@@ -268,7 +339,13 @@ def add_questions(questions: List[Question], db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Successfully added {len(questions)} questions"}
 
+# Endpoint: Get available skills
 @app.get("/available-skills")
 def get_available_skills(db: Session = Depends(get_db)):
     skills = db.query(models.Question.skill).distinct().all()
     return {"skills": [skill[0] for skill in skills]}
+
+# Endpoint: Generate next chapter
+@app.get("/generate-next-chapter")
+def generate_next_chapter_endpoint(username: str, skill: str, current_chapter: int, db: Session = Depends(get_db)):
+    return generate_next_chapter(db, username, skill, current_chapter)
