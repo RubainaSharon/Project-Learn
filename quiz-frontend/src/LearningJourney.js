@@ -20,16 +20,33 @@ export default function LearningJourney() {
       try {
         setLoading(true);
         const res = await axios.get(`http://localhost:8000/user-data/${username}`);
-        const skillData = res.data.skills.find((s) => s.skill === skill);
-        if (skillData && skillData.learning_journey) {
-          setLearningJourney(skillData.learning_journey);
-          setLastGeneratedTime(Date.now()); // Initialize to prevent immediate generation
-        } else {
-          setError("No learning journey found for this skill.");
+        const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
+
+        if (!skillData || !skillData.learning_journey) {
+          throw new Error("No learning journey found for this skill.");
         }
+
+        const journey = skillData.learning_journey;
+
+        // Check if the journey is a placeholder
+        const isPlaceholder = journey.chapters.some(
+          (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
+        );
+
+        if (isPlaceholder) {
+          setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
+        } else {
+          setError(""); // Clear error if not a placeholder
+        }
+
+        setLearningJourney(journey);
+        setLastGeneratedTime(Date.now()); // Initialize to prevent immediate generation
+
+        // Log the initial chapters
+        console.log("Initial chapters:", journey.chapters.map(ch => ch.chapter));
       } catch (err) {
         console.error("Failed to fetch learning journey", err);
-        setError("Failed to load learning journey. Please try again.");
+        setError(err.message || "Failed to load learning journey. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -68,6 +85,9 @@ export default function LearningJourney() {
           setShowCelebration(false);
         }, 5000);
       }
+
+      // Log the chapters after progress update
+      console.log("Chapters after progress update:", updated.chapters.map(ch => ch.chapter));
     } catch (err) {
       console.error("Failed to update progress", err);
       setError("Failed to update progress. Please try again.");
@@ -100,17 +120,16 @@ export default function LearningJourney() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.post("http://localhost:8000/generate-next-chapter", {
-        username,
-        skill,
-        chapter_index: nextIndex,
-      });
+      const res = await axios.get(`http://localhost:8000/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`);
       const updated = { ...learningJourney };
-      updated.chapters[nextIndex] = res.data.chapter;
+      updated.chapters[nextIndex] = res.data;
       setLearningJourney(updated);
       setCurrentChapterIndex(nextIndex);
       setLastGeneratedTime(now);
       setGenerateMessage("");
+
+      // Log the chapters after generating next chapter
+      console.log("Chapters after generating next:", updated.chapters.map(ch => ch.chapter));
     } catch (err) {
       console.error("Failed to generate next chapter", err);
       setError("Failed to generate next chapter. Please try again later.");
@@ -165,11 +184,9 @@ export default function LearningJourney() {
                 }`}
                 onClick={() => setCurrentChapterIndex(i)}
               >
-                <h3 className="text-xl font-bold">Chapter {ch.chapter || i + 1}</h3>
+                <h3 className="text-xl font-bold">Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}</h3>
                 <ul className="text-sm mt-2 text-gray-300 list-disc ml-5">
-                  {(ch.topics || ["Topic A", "Topic B", "Topic C"]).map((t, idx) => (
-                    <li key={idx}>{t}</li>
-                  ))}
+                  {(ch.topics || ["Topic A", "Topic B", "Topic C"]).join(", ")}
                 </ul>
               </div>
             ))
