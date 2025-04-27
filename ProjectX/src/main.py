@@ -349,3 +349,7 @@ def get_available_skills(db: Session = Depends(get_db)):
 @app.get("/generate-next-chapter")
 def generate_next_chapter_endpoint(username: str, skill: str, current_chapter: int, db: Session = Depends(get_db)):
     return generate_next_chapter(db, username, skill, current_chapter)
+    
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to Project Learn API! Use /docs for API documentation."}
