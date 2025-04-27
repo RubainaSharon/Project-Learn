@@ -7,7 +7,7 @@ const UsernamePrompt = ({ setUsername }) => {
 
   const handleSubmit = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/check-username/${inputUsername}`);
+      const response = await axios.get(`https://Project-Learn.onrender.com/check-username/${inputUsername}`);
       if (response.data.exists) {
         setError("Username already exists. Please choose another.");
       } else {
