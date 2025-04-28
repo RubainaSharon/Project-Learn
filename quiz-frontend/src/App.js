@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Home from "./home";
 import Quiz from "./Quiz";
 import About from "./about";
 import Profile from "./Profile";
 import Dashboard from "./Dashboard";
-import UsernamePrompt from "./UsernamePrompt";
+import UsernamePrompt from "./UsernamePrompt"; // Using UsernamePrompt as the entry page
 import LearningJourney from "./LearningJourney";
 import TakeQuizPrompt from "./TakeQuizPrompt";
 import "./index.css";
@@ -59,16 +59,6 @@ function App() {
     }
   }, [username]);
 
-  // ✅ If username not set, show only UsernamePrompt
-  if (!username) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        <UsernamePrompt setUsername={setUsername} />
-      </div>
-    );
-  }
-
-  // ✅ After username entered, show loading spinner
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -76,11 +66,24 @@ function App() {
       </div>
     );
   }
-  // ✅ After loading, render full app
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home username={username} />} />
+        <Route
+          path="/usernameprompt"
+          element={<UsernamePrompt setUsername={setUsername} />}
+        />
+        <Route
+          path="/"
+          element={
+            username ? (
+              <Home username={username} />
+            ) : (
+              <Navigate to="/usernameprompt" replace />
+            )
+          }
+        />
         <Route path="/check-quiz/:skill" element={<TakeQuizPrompt />} />
         <Route path="/quiz/:skill" element={<Quiz username={username} />} />
         <Route path="/learning-journey/:skill" element={<LearningJourney />} />
