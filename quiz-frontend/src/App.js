@@ -76,7 +76,6 @@ function App() {
       </div>
     );
   }
-
   // ✅ After loading, render full app
   return (
     <Router>
