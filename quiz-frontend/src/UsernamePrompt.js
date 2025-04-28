@@ -1,9 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const UsernamePrompt = ({ setUsername }) => {
   const [inputUsername, setInputUsername] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  // Redirect to Home if username already exists
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+      navigate("/");
+    }
+  }, [setUsername, navigate]);
 
   const handleSubmit = async () => {
     try {
@@ -13,6 +24,7 @@ const UsernamePrompt = ({ setUsername }) => {
       } else {
         setUsername(inputUsername);
         localStorage.setItem("username", inputUsername);
+        navigate("/");
       }
     } catch (error) {
       setError("Error checking username.");
@@ -20,7 +32,7 @@ const UsernamePrompt = ({ setUsername }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="min-h-screen flex items-center justify-center bg-black text-white">
       <div className="bg-white p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-4">Enter your username</h2>
         <input
