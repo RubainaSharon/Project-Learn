@@ -13,7 +13,7 @@ import "./index.css";
 
 function App() {
   const [username, setUsername] = useState(localStorage.getItem("username"));
-  const [loading, setLoading] = useState(false); // New loading state
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const cursor = document.createElement("div");
@@ -50,7 +50,6 @@ function App() {
     };
   }, []);
 
-  // Watch when username is set, then show loading spinner for a moment
   useEffect(() => {
     if (username) {
       setLoading(true);
@@ -61,7 +60,7 @@ function App() {
     }
   }, [username]);
 
-  // 🔥 If no username, show UsernamePrompt with full black background
+  // 🚨 STOP rendering Router/Routes if username not set
   if (!username) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -70,7 +69,7 @@ function App() {
     );
   }
 
-  // 🔥 If loading after username entered, show spinner
+  // 🚨 After setting username, show loading
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -79,7 +78,7 @@ function App() {
     );
   }
 
-  // 🔥 After username entered and loading done, render app normally
+  // 🚀 Username is set and loading is done: Show full App
   return (
     <Router>
       <Routes>
