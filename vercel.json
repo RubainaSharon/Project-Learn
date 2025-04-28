@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "quiz-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "quiz-frontend/build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "quiz-frontend/$1"
+    }
+  ]
+}
