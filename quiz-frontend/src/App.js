@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Home from "./home";
 import Quiz from "./Quiz";
 import About from "./about";
-import Navbar from "./navbar";
 import Profile from "./Profile";
 import Dashboard from "./Dashboard";
 import UsernamePrompt from "./UsernamePrompt";
@@ -55,12 +54,12 @@ function App() {
       setLoading(true);
       const timer = setTimeout(() => {
         setLoading(false);
-      }, 1000); // 1 second loading
+      }, 1000); // 1 second
       return () => clearTimeout(timer);
     }
   }, [username]);
 
-  // 🚨 STOP rendering Router/Routes if username not set
+  // ✅ If username not set, show only UsernamePrompt
   if (!username) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -69,7 +68,7 @@ function App() {
     );
   }
 
-  // 🚨 After setting username, show loading
+  // ✅ After username entered, show loading spinner
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -78,7 +77,7 @@ function App() {
     );
   }
 
-  // 🚀 Username is set and loading is done: Show full App
+  // ✅ After loading, render full app
   return (
     <Router>
       <Routes>
