@@ -5,6 +5,7 @@ import axios from "axios";
 const UsernamePrompt = ({ setUsername }) => {
   const [inputUsername, setInputUsername] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   // Redirect to Home if username already exists
@@ -17,8 +18,12 @@ const UsernamePrompt = ({ setUsername }) => {
   }, [setUsername, navigate]);
 
   const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
     try {
-      const response = await axios.get(`https://Project-Learn.onrender.com/check-username/${inputUsername}`);
+      const response = await axios.get(`https://project-learn.onrender.com/check-username/${inputUsername}`, {
+        timeout: 60000, // Increase timeout to 60 seconds to handle Render spin-up
+      });
       if (response.data.exists) {
         setError("Username already exists. Please choose another.");
       } else {
@@ -27,7 +32,9 @@ const UsernamePrompt = ({ setUsername }) => {
         navigate("/");
       }
     } catch (error) {
-      setError("Error checking username.");
+      setError("Error checking username. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,13 +47,15 @@ const UsernamePrompt = ({ setUsername }) => {
           value={inputUsername}
           onChange={(e) => setInputUsername(e.target.value)}
           className="border p-2 w-full mb-4 text-black"
+          disabled={loading}
         />
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <button
           onClick={handleSubmit}
           className="px-4 py-2 bg-blue-500 text-white rounded-md"
+          disabled={loading}
         >
-          Submit
+          {loading ? "Loading..." : "Submit"}
         </button>
       </div>
     </div>
