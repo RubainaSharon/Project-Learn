@@ -22,7 +22,7 @@ const UsernamePrompt = ({ setUsername }) => {
     setError("");
     try {
       const response = await axios.get(`https://project-learn.onrender.com/check-username/${inputUsername}`, {
-        timeout: 60000, // Increase timeout to 60 seconds to handle Render spin-up
+        timeout: 60000, // 60 seconds timeout
       });
       if (response.data.exists) {
         setError("Username already exists. Please choose another.");
@@ -32,7 +32,16 @@ const UsernamePrompt = ({ setUsername }) => {
         navigate("/");
       }
     } catch (error) {
-      setError("Error checking username. Please try again.");
+      console.error("Axios error:", error); // Log detailed error to console
+      if (error.code === "ECONNABORTED") {
+        setError("Request timed out. Please try again.");
+      } else if (error.response) {
+        setError(`Server error: ${error.response.status} - ${error.response.statusText}`);
+      } else if (error.request) {
+        setError("No response received from server. Check network or try again.");
+      } else {
+        setError(`Error checking username: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
