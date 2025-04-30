@@ -11,7 +11,7 @@ export default function TakeQuizPrompt() {
   useEffect(() => {
     const checkQuizEligibility = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/can-take-quiz/${username}/${skill}`);
+        const res = await axios.get(`https://project-learn.onrender.com/can-take-quiz/${username}/${skill}`);
         if (!res.data.can_take) {
           setPromptShown(true);
         } else {
