@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css"; // Import Quill styles
+import "react-quill/dist/quill.snow.css";
 import axios from "axios";
+import Navbar from "./navbar"; 
 
 export default function Profile() {
   const username = localStorage.getItem("username");
@@ -34,11 +35,10 @@ export default function Profile() {
     }
   }, [username]);
 
-  // Save notes to localStorage on change
-  const handleNotesChange = (content) => {
+  const handleNotesChange = useCallback((content) => {
     setNotes(content);
     localStorage.setItem("userNotes", content);
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -58,7 +58,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-start px-6 pt-24 pb-10">
-      <navbar /> {/* Assuming Navbar is available; adjust if needed */}
+      <Navbar />
       <div className="max-w-4xl w-full mx-auto">
         <h1 className="text-6xl font-extrabold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 animate-fade-in">
           Welcome, {username}!
@@ -71,7 +71,7 @@ export default function Profile() {
           Go to Dashboard
         </Link>
 
-        {/* Scores Section */}
+        {/* Achievements */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold text-white mb-6 border-b-2 border-purple-400 pb-2 text-center">
             Your Achievements
@@ -87,9 +87,7 @@ export default function Profile() {
                   <h3 className="text-xl font-semibold text-purple-300">{skill.skill}</h3>
                   <p className="text-gray-400">Score: {skill.score || 0}/20</p>
                   <p className="text-gray-400">Progress: {skill.progress.toFixed(1)}%</p>
-                  <p className="text-gray-400">
-                    Last Attempt: {skill.last_attempt_date || "N/A"}
-                  </p>
+                  <p className="text-gray-400">Last Attempt: {skill.last_attempt_date || "N/A"}</p>
                 </div>
               ))}
             </div>
@@ -98,7 +96,7 @@ export default function Profile() {
           )}
         </section>
 
-        {/* Notes Section */}
+        {/* Notes */}
         <section>
           <h2 className="text-3xl font-bold text-white mb-6 border-b-2 border-blue-400 pb-2 text-center">
             Your Notes
@@ -117,7 +115,7 @@ export default function Profile() {
                   ["clean"],
                 ],
               }}
-              className="custom-quill-editor text-white" // Custom class for styling
+              className="custom-quill-editor text-white"
             />
           </div>
         </section>
@@ -126,35 +124,34 @@ export default function Profile() {
   );
 }
 
-// Animation keyframes and custom Quill styling
+// Inject styles
 const styles = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes fadeInDelay {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-  .animate-fade-in-delay {
-    animation: fadeInDelay 0.5s ease-in-out forwards;
-  }
-  .custom-quill-editor .ql-editor {
-    color: white !important; /* Force white text color */
-    background-color: #2d3748; /* Match bg-gray-800 for consistency */
-  }
-  .custom-quill-editor .ql-toolbar {
-    background-color: #2d3748; /* Match bg-gray-800 */
-    border-color: #4a5568; /* Lighter border for contrast */
-  }
-  .custom-quill-editor .ql-container {
-    border-color: #4a5568; /* Lighter border for contrast */
-  }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeInDelay {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+.animate-fade-in-delay {
+  animation: fadeInDelay 0.5s ease-in-out forwards;
+}
+.custom-quill-editor .ql-editor {
+  color: white !important;
+  background-color: #2d3748;
+}
+.custom-quill-editor .ql-toolbar {
+  background-color: #2d3748;
+  border-color: #4a5568;
+}
+.custom-quill-editor .ql-container {
+  border-color: #4a5568;
+}
 `;
-
 const styleSheet = document.createElement("style");
 styleSheet.textContent = styles;
 document.head.appendChild(styleSheet);
