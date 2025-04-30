@@ -19,7 +19,7 @@ export default function LearningJourney() {
     const fetchJourney = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:8000/user-data/${username}`);
+        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
         const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
 
         if (!skillData || !skillData.learning_journey) {
@@ -62,7 +62,7 @@ export default function LearningJourney() {
 
   const handleProgressUpdate = async (index, completed) => {
     try {
-      await axios.post("http://localhost:8000/update-progress", {
+      await axios.post("https://project-learn.onrender.com/update-progress", {
         username,
         skill,
         chapter_index: index,
@@ -120,7 +120,7 @@ export default function LearningJourney() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get(`http://localhost:8000/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`);
+      const res = await axios.get(`https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`);
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
       setLearningJourney(updated);
