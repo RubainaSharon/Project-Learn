@@ -8,7 +8,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSkills = async () => {
       const username = localStorage.getItem("username");
-      const res = await axios.get(`http://localhost:8000/user-data/${username}`);
+      const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
       setSkills(res.data.skills || []);
     };
     fetchSkills();
