@@ -11,9 +11,9 @@ export default function LearningJourney() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [lastGeneratedTime, setLastGeneratedTime] = useState(null); // Track last generation time
-  const [generateMessage, setGenerateMessage] = useState(""); // Message for generation restriction
-  const [showCelebration, setShowCelebration] = useState(false); // State for celebration
+  const [lastGeneratedTime, setLastGeneratedTime] = useState(null);
+  const [generateMessage, setGenerateMessage] = useState("");
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     const fetchJourney = async () => {
@@ -28,7 +28,6 @@ export default function LearningJourney() {
 
         const journey = skillData.learning_journey;
 
-        // Check if the journey is a placeholder
         const isPlaceholder = journey.chapters.some(
           (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
         );
@@ -36,14 +35,11 @@ export default function LearningJourney() {
         if (isPlaceholder) {
           setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
         } else {
-          setError(""); // Clear error if not a placeholder
+          setError("");
         }
 
         setLearningJourney(journey);
-        setLastGeneratedTime(Date.now()); // Initialize to prevent immediate generation
-
-        // Log the initial chapters
-        console.log("Initial chapters:", journey.chapters.map(ch => ch.chapter));
+        setLastGeneratedTime(Date.now());
       } catch (err) {
         console.error("Failed to fetch learning journey", err);
         setError(err.message || "Failed to load learning journey. Please try again.");
@@ -72,7 +68,6 @@ export default function LearningJourney() {
       updated.chapters[index].completed = completed;
       setLearningJourney(updated);
 
-      // Trigger celebration if Chapter 10 is marked complete
       if (index === 9 && completed) {
         setShowCelebration(true);
         confetti({
@@ -85,9 +80,6 @@ export default function LearningJourney() {
           setShowCelebration(false);
         }, 5000);
       }
-
-      // Log the chapters after progress update
-      console.log("Chapters after progress update:", updated.chapters.map(ch => ch.chapter));
     } catch (err) {
       console.error("Failed to update progress", err);
       setError("Failed to update progress. Please try again.");
@@ -97,7 +89,7 @@ export default function LearningJourney() {
   const generateNextChapter = async () => {
     const now = Date.now();
     const timeSinceLastGenerated = lastGeneratedTime ? now - lastGeneratedTime : Infinity;
-    const minDelay = 60 * 1000; // 60 seconds in milliseconds
+    const minDelay = 60 * 1000;
 
     if (timeSinceLastGenerated < minDelay) {
       setGenerateMessage(
@@ -120,16 +112,15 @@ export default function LearningJourney() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get(`https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`);
+      const res = await axios.get(
+        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`
+      );
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
       setLearningJourney(updated);
       setCurrentChapterIndex(nextIndex);
       setLastGeneratedTime(now);
       setGenerateMessage("");
-
-      // Log the chapters after generating next chapter
-      console.log("Chapters after generating next:", updated.chapters.map(ch => ch.chapter));
     } catch (err) {
       console.error("Failed to generate next chapter", err);
       setError("Failed to generate next chapter. Please try again later.");
@@ -142,14 +133,9 @@ export default function LearningJourney() {
   const isUnlocked = !!current.script || currentChapterIndex === 0;
   const canShow = currentChapterIndex === 0 || learningJourney.chapters[currentChapterIndex - 1]?.completed;
 
-  // Clean script for Chapter 1 only
   const cleanedScript =
     currentChapterIndex === 0 && current.script
-      ? current.script
-          .replace(/\*\*/g, "") // Remove bold markers
-          .replace(/#/g, "") // Remove headers
-          .replace(/"/g, "") // Remove quotes
-          .trim()
+      ? current.script.replace(/\*\*/g, "").replace(/#/g, "").replace(/"/g, "").trim()
       : current.script;
 
   if (loading && !generateMessage) {
@@ -172,30 +158,31 @@ export default function LearningJourney() {
     <div className="min-h-screen bg-black text-white pt-24 px-4 pb-10">
       <Navbar />
       <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-8">
-        {/* Sidebar */}
         <aside className="custom-scroll w-full lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4 h-[calc(100vh-7rem)] overflow-y-auto sticky top-28">
           <h2 className="text-3xl font-bold mb-4 text-center text-purple-400">Chapters</h2>
           {learningJourney.chapters.length > 0 ? (
-            learningJourney.chapters.map((ch, i) => (
-              <div
-                key={i}
-                className={`p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
-                  i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
-                }`}
-                onClick={() => setCurrentChapterIndex(i)}
-              >
-                <h3 className="text-xl font-bold">Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}</h3>
-                <ul className="text-sm mt-2 text-gray-300 list-disc ml-5">
-                  {(ch.topics || ["Topic A", "Topic B", "Topic C"]).join(", ")}
-                </ul>
-              </div>
-            ))
+            learningJourney.chapters.map((ch, i) => {
+              const topics = ch.topics?.length ? ch.topics.join(", ") : "Topic A, Topic B, Topic C";
+              return (
+                <div
+                  key={i}
+                  className={`p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
+                    i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
+                  }`}
+                  onClick={() => setCurrentChapterIndex(i)}
+                >
+                  <h3 className="text-xl font-bold">
+                    Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}
+                  </h3>
+                  <p className="text-sm mt-2 text-gray-300">{topics}</p>
+                </div>
+              );
+            })
           ) : (
             <p className="text-gray-400">No chapters available.</p>
           )}
         </aside>
 
-        {/* Main Content */}
         <main className="w-full lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-10 shadow-xl">
           {canShow && isUnlocked ? (
             <>
@@ -204,11 +191,16 @@ export default function LearningJourney() {
               </h2>
               <p className="text-xl mb-4 text-gray-300">{current.description || "No description available."}</p>
               <p className="text-lg mb-4">
-                Topics: <span className="text-gray-400">{(current.topics || ["Topic A", "Topic B", "Topic C"]).join(", ")}</span>
+                Topics:{" "}
+                <span className="text-gray-400">
+                  {current.topics?.length ? current.topics.join(", ") : "Topic A, Topic B, Topic C"}
+                </span>
               </p>
               <div className="text-left">
                 <strong className="text-2xl">Script:</strong>
-                <p className="mt-4 whitespace-pre-wrap text-lg text-gray-200">{cleanedScript || "No script available."}</p>
+                <p className="mt-4 whitespace-pre-wrap text-lg text-gray-200">
+                  {cleanedScript || "No script available."}
+                </p>
               </div>
               <p className="mt-6 text-lg text-gray-400">
                 <strong>Summary:</strong> {current.summary || "No summary available."}
@@ -234,27 +226,20 @@ export default function LearningJourney() {
                     Generate Next Chapter
                   </button>
                   {loading && (
-                    <p className="mt-3 text-sm text-gray-400">
-                      ⏳ Please wait, the chapter is being generated...
-                    </p>
+                    <p className="mt-3 text-sm text-gray-400">⏳ Please wait, the chapter is being generated...</p>
                   )}
                   {generateMessage && (
-                    <p className="mt-3 text-sm text-yellow-400">
-                      {generateMessage}
-                    </p>
+                    <p className="mt-3 text-sm text-yellow-400">{generateMessage}</p>
                   )}
                 </div>
               )}
             </>
           ) : (
-            <p className="text-xl text-yellow-400">
-              🔒 Complete the previous chapters to unlock this.
-            </p>
+            <p className="text-xl text-yellow-400">🔒 Complete the previous chapters to unlock this.</p>
           )}
         </main>
       </div>
 
-      {/* Celebration Overlay */}
       {showCelebration && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="text-center">
