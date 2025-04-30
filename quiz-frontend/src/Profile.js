@@ -15,7 +15,7 @@ export default function Profile() {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:8000/user-data/${username}`);
+        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
         const skills = res.data.skills || [];
         setUserSkills(skills);
       } catch (err) {
