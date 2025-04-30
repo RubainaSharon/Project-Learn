@@ -18,7 +18,7 @@ const Quiz = ({ username }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/questions/${skill}`);
+        const res = await axios.get(`https://project-learn.onrender.com/questions/${skill}`);
         if (res.data.length > 0) {
           setQuestions(res.data);
           setUserAnswers(new Array(res.data.length).fill(null));
@@ -67,7 +67,7 @@ const Quiz = ({ username }) => {
 
   const submitScore = async (finalScore) => {
     try {
-      await axios.post("http://localhost:8000/submit-score", {
+      await axios.post("https://project-learn.onrender.com/submit-score", {
         username,
         skill,
         score: finalScore,
