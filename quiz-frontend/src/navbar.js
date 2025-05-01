@@ -8,8 +8,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-black text-white w-full py-6 fixed top-0 flex justify-center shadow-lg z-50 border-b border-gray-800">
-      <ul className="flex space-x-20 text-4xl font-bold items-center">
+    <nav className="bg-black text-white w-full py-4 fixed top-0 flex justify-center shadow-lg z-50 border-b border-gray-800">
+      <ul className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 text-2xl sm:text-3xl md:text-4xl font-bold items-center p-2">
         <li className="transition duration-300 ease-in-out hover:text-purple-400 hover:underline underline-offset-8">
           <Link to="/" onClick={scrollToTop}>Home</Link>
         </li>
@@ -22,9 +22,9 @@ export default function Navbar() {
         <li className="transition duration-300 ease-in-out hover:text-purple-400 hover:underline underline-offset-8">
           <Link to="/dashboard">Dashboard</Link>
         </li>
-        <li className="ml-6">
+        <li className="ml-0 sm:ml-6">
           <Link to="/profile" title="Profile">
-            <svg className="w-10 h-10 text-white hover:text-purple-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 sm:w-10 h-8 sm:h-10 text-white hover:text-purple-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </Link>
