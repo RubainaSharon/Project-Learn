@@ -59,9 +59,11 @@ const Home = ({ username }) => {
         className="flex items-center justify-center h-screen w-full relative overflow-hidden"
       >
         <h1
-          className="font-bold text-center text-white 
-                     text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[20rem] 
-                     animate-mobile-learn"
+          className="font-extrabold text-center text-white 
+             text-[3.5rem] xs:text-6xl sm:text-7xl md:text-8xl 
+             lg:text-9xl xl:text-[20rem] 
+             leading-tight tracking-tight 
+             animate-mobile-learn drop-shadow-md"
         >
           {typedText}
         </h1>
