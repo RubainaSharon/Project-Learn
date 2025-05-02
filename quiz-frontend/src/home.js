@@ -19,11 +19,9 @@ const Home = ({ username }) => {
     return () => observer.disconnect();
   }, []);
 
-  // ✅ Proper Typing effect using interval outside setTypedText
   useEffect(() => {
     const word = "Learn";
     let index = 0;
-
     const interval = setInterval(() => {
       if (index < word.length) {
         setTypedText(word.slice(0, index + 1));
@@ -31,8 +29,7 @@ const Home = ({ username }) => {
       } else {
         clearInterval(interval);
       }
-    }, 500); // Adjust typing speed here
-
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -61,7 +58,11 @@ const Home = ({ username }) => {
         id="home"
         className="flex items-center justify-center h-screen w-full relative overflow-hidden"
       >
-        <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[20rem] font-bold text-center">
+        <h1
+          className="font-bold text-center text-white 
+                     text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[20rem] 
+                     animate-mobile-learn"
+        >
           {typedText}
         </h1>
       </div>
@@ -109,7 +110,7 @@ const Home = ({ username }) => {
         <h2 className="text-2xl font-bold mb-4">Connect With Me</h2>
         <div className="flex justify-center gap-6">
           <a
-            href="https://github.com/RubainaSharon" // Replace with your GitHub
+            href="https://github.com/RubainaSharon"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-purple-400 transition-transform transform hover:scale-110 animate-pulse-slow"
@@ -117,7 +118,7 @@ const Home = ({ username }) => {
             <FaGithub />
           </a>
           <a
-            href="https://hashnode.com/@rubainasharon" // Replace with your Hashnode
+            href="https://hashnode.com/@rubainasharon"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-blue-400 transition-transform transform hover:scale-110 animate-pulse-slow"
@@ -125,13 +126,13 @@ const Home = ({ username }) => {
             <FaBlog />
           </a>
           <a
-            href="mailto:rubainasharon@gmail.com" // Replace with your email
+            href="mailto:rubainasharon@gmail.com"
             className="text-3xl text-gray-300 hover:text-green-400 transition-transform transform hover:scale-110 animate-pulse-slow"
           >
             <FaEnvelope />
           </a>
           <a
-            href="www.linkedin.com/in/rubaina-sharon-4567b9210" // Replace with your LinkedIn
+            href="https://www.linkedin.com/in/rubaina-sharon-4567b9210"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-blue-600 transition-transform transform hover:scale-110 animate-pulse-slow"
@@ -139,7 +140,7 @@ const Home = ({ username }) => {
             <FaLinkedin />
           </a>
           <a
-            href="https://discordapp.com/users/rubainasharon7639" // Replace with your Discord invite
+            href="https://discordapp.com/users/rubainasharon7639"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-purple-600 transition-transform transform hover:scale-110 animate-pulse-slow"
@@ -147,7 +148,7 @@ const Home = ({ username }) => {
             <FaDiscord />
           </a>
           <a
-            href="https://youtube.com/@yourusername" // Replace with your YouTube
+            href="https://youtube.com/@yourusername"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-red-500 transition-transform transform hover:scale-110 animate-pulse-slow"
@@ -166,15 +167,37 @@ const styles = `
     from { opacity: 0; }
     to { opacity: 1; }
   }
+
   @keyframes pulseSlow {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
   }
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+
+  @keyframes popGlow {
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+      text-shadow: none;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    100% {
+      transform: scale(1);
+      text-shadow: none;
+    }
   }
+
   .animate-pulse-slow {
     animation: pulseSlow 2s infinite;
+  }
+
+  @media (max-width: 639px) {
+    .animate-mobile-learn {
+      animation: popGlow 1.5s ease-out;
+    }
   }
 `;
 
