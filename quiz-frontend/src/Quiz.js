@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "./navbar";
-import * as PIXI from "pixi.js";
+import { Application } from "@pixi/app";
+import { Graphics } from "@pixi/graphics";
 
 const Quiz = ({ username }) => {
   const { skill } = useParams();
@@ -23,256 +24,260 @@ const Quiz = ({ username }) => {
   useEffect(() => {
     // Define the async function to initialize PixiJS
     const initPixi = async () => {
-      // Use Application.init() instead of the deprecated constructor
-      const app = await PIXI.Application.init({
-        width: window.innerWidth,
-        height: window.innerHeight,
-        backgroundColor: 0x000000,
-        resizeTo: window,
-        antialias: true,
-      });
-      appRef.current = app;
-
-      // Use app.canvas instead of app.view
-      if (canvasRef.current) {
-        canvasRef.current.appendChild(app.canvas);
-      } else {
-        console.error("canvasRef.current is null, cannot append PixiJS canvas.");
-        return;
-      }
-
-      // Entities arrays
-      const whales = [];
-      const jellyfish = [];
-      const starships = [];
-      const particles = [];
-
-      // Whale creation
-      const createWhale = () => {
-        const whale = new PIXI.Graphics();
-        whale.beginFill(0x4b0082, 0.7);
-        whale.drawEllipse(0, 0, 30, 15);
-        whale.endFill();
-        whale.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
-        whale.velocity = { x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2 };
-        app.stage.addChild(whale);
-        return whale;
-      };
-
-      // Jellyfish creation
-      const createJellyfish = () => {
-        const jelly = new PIXI.Graphics();
-        jelly.beginFill(0x00b7eb, 0.6);
-        jelly.drawCircle(0, 0, 20);
-        jelly.endFill();
-        jelly.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
-        jelly.velocity = { x: (Math.random() - 0.5) * 1, y: (Math.random() - 0.5) * 1 };
-        jelly.pulse = Math.random() * Math.PI;
-        app.stage.addChild(jelly);
-        return jelly;
-      };
-
-      // Starship creation
-      const createStarship = () => {
-        const ship = new PIXI.Graphics();
-        ship.beginFill(0xff4500, 0.8);
-        ship.drawPolygon([0, -10, 8, 10, -8, 10]);
-        ship.endFill();
-        ship.scale.set(0.5);
-        ship.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
-        ship.velocity = { x: (Math.random() - 0.5) * 3, y: (Math.random() - 0.5) * 3 };
-        app.stage.addChild(ship);
-        return ship;
-      };
-
-      // Particle creation
-      const createParticle = (x, y, color = 0xffffff) => {
-        const particle = new PIXI.Graphics();
-        particle.beginFill(color, 0.5);
-        particle.drawCircle(0, 0, 3);
-        particle.endFill();
-        particle.position.set(x, y);
-        particle.velocity = { x: (Math.random() - 0.5) * 5, y: (Math.random() - 0.5) * 5 };
-        particle.life = 60;
-        app.stage.addChild(particle);
-        particles.push(particle);
-      };
-
-      // Initialize entities (scale count based on screen size)
-      const entityCount = Math.min(Math.floor(app.screen.width / 100) + 5, 20);
-      for (let i = 0; i < entityCount; i++) {
-        whales.push(createWhale());
-        jellyfish.push(createJellyfish());
-        starships.push(createStarship());
-      }
-
-      // Animation loop
-      let time = 0;
-      app.ticker.add(() => {
-        time += 0.02;
-
-        // Update whales
-        whales.forEach((whale) => {
-          whale.position.x += whale.velocity.x;
-          whale.position.y += whale.velocity.y;
-          if (whale.position.x < 0 || whale.position.x > app.screen.width) whale.velocity.x *= -1;
-          if (whale.position.y < 0 || whale.position.y > app.screen.height) whale.velocity.y *= -1;
-          if (Math.random() < 0.01) createParticle(whale.position.x, whale.position.y, 0x4b0082);
+      try {
+        // Initialize PixiJS application using Application.init()
+        const app = await Application.init({
+          width: window.innerWidth,
+          height: window.innerHeight,
+          backgroundColor: 0x000000,
+          resizeTo: window,
+          antialias: true,
         });
+        appRef.current = app;
 
-        // Update jellyfish
-        jellyfish.forEach((jelly) => {
-          jelly.position.x += jelly.velocity.x;
-          jelly.position.y += jelly.velocity.y;
-          jelly.pulse += 0.05;
-          jelly.scale.set(1 + Math.sin(jelly.pulse) * 0.2);
-          if (jelly.position.x < 0 || jelly.position.x > app.screen.width) jelly.velocity.x *= -1;
-          if (jelly.position.y < 0 || jelly.position.y > app.screen.height) jelly.velocity.y *= -1;
-          if (Math.random() < 0.02) createParticle(jelly.position.x, jelly.position.y, 0x00b7eb);
-        });
-
-        // Update starships (simple swarm behavior)
-        starships.forEach((ship, i) => {
-          ship.position.x += ship.velocity.x;
-          ship.position.y += ship.velocity.y;
-          if (ship.position.x < 0 || ship.position.x > app.screen.width) ship.velocity.x *= -1;
-          if (ship.position.y < 0 || ship.position.y > app.screen.height) ship.velocity.y *= -1;
-          if (i === 0) return; // Leader
-          const leader = starships[0];
-          ship.velocity.x += (leader.position.x - ship.position.x) * 0.001;
-          ship.velocity.y += (leader.position.y - ship.position.y) * 0.001;
-          if (Math.random() < 0.005) {
-            const target = starships[Math.floor(Math.random() * starships.length)];
-            const line = new PIXI.Graphics();
-            line.lineStyle(1, 0xff4500, 0.5);
-            line.moveTo(ship.position.x, ship.position.y);
-            line.lineTo(target.position.x, target.position.y);
-            app.stage.addChild(line);
-            setTimeout(() => line.destroy(), 100);
-          }
-        });
-
-        // Update particles
-        particles.forEach((p, i) => {
-          p.position.x += p.velocity.x;
-          p.position.y += p.velocity.y;
-          p.life -= 1;
-          p.alpha = p.life / 60;
-          if (p.life <= 0) {
-            app.stage.removeChild(p);
-            particles.splice(i, 1);
-          }
-        });
-
-        // Background nebula effect
-        if (Math.random() < 0.01) {
-          const nebula = new PIXI.Graphics();
-          nebula.beginFill(0x1c2526, 0.1);
-          nebula.drawCircle(0, 0, 100);
-          nebula.endFill();
-          nebula.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
-          app.stage.addChild(nebula);
-          setTimeout(() => nebula.destroy(), 2000);
+        // Append the canvas to the DOM
+        if (canvasRef.current) {
+          canvasRef.current.appendChild(app.canvas);
+          console.log("PixiJS canvas appended successfully.");
+        } else {
+          console.error("canvasRef.current is null, cannot append PixiJS canvas.");
+          return;
         }
-      });
 
-      // Interaction handling
-      app.stage.interactive = true;
-      let lastInteraction = 0;
-      const handleInteraction = (x, y) => {
-        const now = Date.now();
-        if (now - lastInteraction < 200) return; // Debounce
-        lastInteraction = now;
+        // Entities arrays
+        const whales = [];
+        const jellyfish = [];
+        const starships = [];
+        const particles = [];
 
-        // Ripple effect
-        const ripple = new PIXI.Graphics();
-        ripple.lineStyle(2, 0xffffff, 0.5);
-        ripple.drawCircle(0, 0, 10);
-        ripple.position.set(x, y);
-        app.stage.addChild(ripple);
-        let scale = 1;
-        const rippleTicker = () => {
-          scale += 0.05;
-          ripple.scale.set(scale);
-          ripple.alpha = 1 - scale / 3;
-          if (scale > 3) {
-            ripple.destroy();
-            app.ticker.remove(rippleTicker);
-          }
+        // Whale creation
+        const createWhale = () => {
+          const whale = new Graphics();
+          whale.beginFill(0x4b0082, 0.7);
+          whale.drawEllipse(0, 0, 30, 15);
+          whale.endFill();
+          whale.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
+          whale.velocity = { x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2 };
+          app.stage.addChild(whale);
+          return whale;
         };
-        app.ticker.add(rippleTicker);
 
-        // Affect nearby entities
-        whales.forEach((w) => {
-          const dist = Math.hypot(w.position.x - x, w.position.y - y);
-          if (dist < 100) {
-            w.velocity.x += (w.position.x - x) * 0.05;
-            w.velocity.y += (w.position.y - y) * 0.05;
-            for (let i = 0; i < 5; i++) createParticle(w.position.x, w.position.y, 0x4b0082);
-          }
-        });
-        jellyfish.forEach((j) => {
-          const dist = Math.hypot(j.position.x - x, j.position.y - y);
-          if (dist < 100) {
-            j.scale.set(1.5);
-            for (let i = 0; i < 5; i++) createParticle(j.position.x, j.position.y, 0x00b7eb);
-          }
-        });
-        starships.forEach((s) => {
-          const dist = Math.hypot(s.position.x - x, s.position.y - y);
-          if (dist < 100) {
-            s.velocity.x += (Math.random() - 0.5) * 5;
-            s.velocity.y += (Math.random() - 0.5) * 5;
-            for (let i = 0; i < 3; i++) createParticle(s.position.x, s.position.y, 0xff4500);
-          }
-        });
-      };
+        // Jellyfish creation
+        const createJellyfish = () => {
+          const jelly = new Graphics();
+          jelly.beginFill(0x00b7eb, 0.6);
+          jelly.drawCircle(0, 0, 20);
+          jelly.endFill();
+          jelly.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
+          jelly.velocity = { x: (Math.random() - 0.5) * 1, y: (Math.random() - 0.5) * 1 };
+          jelly.pulse = Math.random() * Math.PI;
+          app.stage.addChild(jelly);
+          return jelly;
+        };
 
-      // Mouse events
-      app.stage.on("mousemove", (e) => {
-        const { x, y } = e.data.global;
-        whales.forEach((w) => {
-          const dist = Math.hypot(w.position.x - x, w.position.y - y);
-          if (dist < 150) {
-            w.velocity.x += (x - w.position.x) * 0.001;
-            w.velocity.y += (y - w.position.y) * 0.001;
-          }
-        });
-        jellyfish.forEach((j) => {
-          const dist = Math.hypot(j.position.x - x, j.position.y - y);
-          if (dist < 150) j.scale.set(1.2);
-        });
-      });
-      app.stage.on("click", (e) => {
-        const { x, y } = e.data.global;
-        handleInteraction(x, y);
-      });
+        // Starship creation
+        const createStarship = () => {
+          const ship = new Graphics();
+          ship.beginFill(0xff4500, 0.8);
+          ship.drawPolygon([0, -10, 8, 10, -8, 10]);
+          ship.endFill();
+          ship.scale.set(0.5);
+          ship.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
+          ship.velocity = { x: (Math.random() - 0.5) * 3, y: (Math.random() - 0.5) * 3 };
+          app.stage.addChild(ship);
+          return ship;
+        };
 
-      // Touch events
-      app.stage.on("touchmove", (e) => {
-        const touch = e.data.getLocalPosition(app.stage);
-        whales.forEach((w) => {
-          const dist = Math.hypot(w.position.x - touch.x, w.position.y - touch.y);
-          if (dist < 150) {
-            w.velocity.x += (touch.x - w.position.x) * 0.001;
-            w.velocity.y += (touch.y - w.position.y) * 0.001;
+        // Particle creation
+        const createParticle = (x, y, color = 0xffffff) => {
+          const particle = new Graphics();
+          particle.beginFill(color, 0.5);
+          particle.drawCircle(0, 0, 3);
+          particle.endFill();
+          particle.position.set(x, y);
+          particle.velocity = { x: (Math.random() - 0.5) * 5, y: (Math.random() - 0.5) * 5 };
+          particle.life = 60;
+          app.stage.addChild(particle);
+          particles.push(particle);
+        };
+
+        // Initialize entities (scale count based on screen size)
+        const entityCount = Math.min(Math.floor(app.screen.width / 100) + 5, 20);
+        for (let i = 0; i < entityCount; i++) {
+          whales.push(createWhale());
+          jellyfish.push(createJellyfish());
+          starships.push(createStarship());
+        }
+        console.log(`Initialized ${whales.length} whales, ${jellyfish.length} jellyfish, and ${starships.length} starships.`);
+
+        // Animation loop
+        let time = 0;
+        app.ticker.add(() => {
+          time += 0.02;
+
+          // Update whales
+          whales.forEach((whale) => {
+            whale.position.x += whale.velocity.x;
+            whale.position.y += whale.velocity.y;
+            if (whale.position.x < 0 || whale.position.x > app.screen.width) whale.velocity.x *= -1;
+            if (whale.position.y < 0 || whale.position.y > app.screen.height) whale.velocity.y *= -1;
+            if (Math.random() < 0.01) createParticle(whale.position.x, whale.position.y, 0x4b0082);
+          });
+
+          // Update jellyfish
+          jellyfish.forEach((jelly) => {
+            jelly.position.x += jelly.velocity.x;
+            jelly.position.y += jelly.velocity.y;
+            jelly.pulse += 0.05;
+            jelly.scale.set(1 + Math.sin(jelly.pulse) * 0.2);
+            if (jelly.position.x < 0 || jelly.position.x > app.screen.width) jelly.velocity.x *= -1;
+            if (jelly.position.y < 0 || jelly.position.y > app.screen.height) jelly.velocity.y *= -1;
+            if (Math.random() < 0.02) createParticle(jelly.position.x, jelly.position.y, 0x00b7eb);
+          });
+
+          // Update starships (simple swarm behavior)
+          starships.forEach((ship, i) => {
+            ship.position.x += ship.velocity.x;
+            ship.position.y += ship.velocity.y;
+            if (ship.position.x < 0 || ship.position.x > app.screen.width) ship.velocity.x *= -1;
+            if (ship.position.y < 0 || ship.position.y > app.screen.height) ship.velocity.y *= -1;
+            if (i === 0) return; // Leader
+            const leader = starships[0];
+            ship.velocity.x += (leader.position.x - ship.position.x) * 0.001;
+            ship.velocity.y += (leader.position.y - ship.position.y) * 0.001;
+            if (Math.random() < 0.005) {
+              const target = starships[Math.floor(Math.random() * starships.length)];
+              const line = new Graphics();
+              line.lineStyle(1, 0xff4500, 0.5);
+              line.moveTo(ship.position.x, ship.position.y);
+              line.lineTo(target.position.x, target.position.y);
+              app.stage.addChild(line);
+              setTimeout(() => line.destroy(), 100);
+            }
+          });
+
+          // Update particles
+          particles.forEach((p, i) => {
+            p.position.x += p.velocity.x;
+            p.position.y += p.velocity.y;
+            p.life -= 1;
+            p.alpha = p.life / 60;
+            if (p.life <= 0) {
+              app.stage.removeChild(p);
+              particles.splice(i, 1);
+            }
+          });
+
+          // Background nebula effect
+          if (Math.random() < 0.01) {
+            const nebula = new Graphics();
+            nebula.beginFill(0x1c2526, 0.1);
+            nebula.drawCircle(0, 0, 100);
+            nebula.endFill();
+            nebula.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
+            app.stage.addChild(nebula);
+            setTimeout(() => nebula.destroy(), 2000);
           }
         });
-        jellyfish.forEach((j) => {
-          const dist = Math.hypot(j.position.x - touch.x, j.position.y - touch.y);
-          if (dist < 150) j.scale.set(1.2);
+
+        // Interaction handling
+        app.stage.interactive = true;
+        let lastInteraction = 0;
+        const handleInteraction = (x, y) => {
+          const now = Date.now();
+          if (now - lastInteraction < 200) return; // Debounce
+          lastInteraction = now;
+
+          // Ripple effect
+          const ripple = new Graphics();
+          ripple.lineStyle(2, 0xffffff, 0.5);
+          ripple.drawCircle(0, 0, 10);
+          ripple.position.set(x, y);
+          app.stage.addChild(ripple);
+          let scale = 1;
+          const rippleTicker = () => {
+            scale += 0.05;
+            ripple.scale.set(scale);
+            ripple.alpha = 1 - scale / 3;
+            if (scale > 3) {
+              ripple.destroy();
+              app.ticker.remove(rippleTicker);
+            }
+          };
+          app.ticker.add(rippleTicker);
+
+          // Affect nearby entities
+          whales.forEach((w) => {
+            const dist = Math.hypot(w.position.x - x, w.position.y - y);
+            if (dist < 100) {
+              w.velocity.x += (w.position.x - x) * 0.05;
+              w.velocity.y += (w.position.y - y) * 0.05;
+              for (let i = 0; i < 5; i++) createParticle(w.position.x, w.position.y, 0x4b0082);
+            }
+          });
+          jellyfish.forEach((j) => {
+            const dist = Math.hypot(j.position.x - x, j.position.y - y);
+            if (dist < 100) {
+              j.scale.set(1.5);
+              for (let i = 0; i < 5; i++) createParticle(j.position.x, j.position.y, 0x00b7eb);
+            }
+          });
+          starships.forEach((s) => {
+            const dist = Math.hypot(s.position.x - x, s.position.y - y);
+            if (dist < 100) {
+              s.velocity.x += (Math.random() - 0.5) * 5;
+              s.velocity.y += (Math.random() - 0.5) * 5;
+              for (let i = 0; i < 3; i++) createParticle(s.position.x, s.position.y, 0xff4500);
+            }
+          });
+        };
+
+        // Mouse events
+        app.stage.on("mousemove", (e) => {
+          const { x, y } = e.data.global;
+          whales.forEach((w) => {
+            const dist = Math.hypot(w.position.x - x, w.position.y - y);
+            if (dist < 150) {
+              w.velocity.x += (x - w.position.x) * 0.001;
+              w.velocity.y += (y - w.position.y) * 0.001;
+            }
+          });
+          jellyfish.forEach((j) => {
+            const dist = Math.hypot(j.position.x - x, j.position.y - y);
+            if (dist < 150) j.scale.set(1.2);
+          });
         });
-      });
-      app.stage.on("touchstart", (e) => {
-        const touch = e.data.getLocalPosition(app.stage);
-        handleInteraction(touch.x, touch.y);
-      });
+        app.stage.on("click", (e) => {
+          const { x, y } = e.data.global;
+          handleInteraction(x, y);
+        });
+
+        // Touch events
+        app.stage.on("touchmove", (e) => {
+          const touch = e.data.getLocalPosition(app.stage);
+          whales.forEach((w) => {
+            const dist = Math.hypot(w.position.x - touch.x, w.position.y - touch.y);
+            if (dist < 150) {
+              w.velocity.x += (touch.x - w.position.x) * 0.001;
+              w.velocity.y += (touch.y - w.position.y) * 0.001;
+            }
+          });
+          jellyfish.forEach((j) => {
+            const dist = Math.hypot(j.position.x - touch.x, j.position.y - touch.y);
+            if (dist < 150) j.scale.set(1.2);
+          });
+        });
+        app.stage.on("touchstart", (e) => {
+          const touch = e.data.getLocalPosition(app.stage);
+          handleInteraction(touch.x, touch.y);
+        });
+      } catch (err) {
+        console.error("Failed to initialize PixiJS:", err);
+      }
     };
 
     // Call the async initialization
-    initPixi().catch((err) => {
-      console.error("Failed to initialize PixiJS:", err);
-    });
+    initPixi();
 
     // Clean up
     return () => {
@@ -369,7 +374,6 @@ const Quiz = ({ username }) => {
               <p className="text-lg mb-4">{questions[currentQuestion].question}</p>
               {questions[currentQuestion].options.map((option, index) => (
                 <div key={index} className="mt-2">
-                  Traits
                   <input
                     type="radio"
                     id={`option${index}`}
