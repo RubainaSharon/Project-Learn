@@ -6,20 +6,22 @@ body {
   @apply m-0 bg-gray-100 text-gray-900 font-sans;
 }
 
-/* Hide default cursor */
-* {
-  cursor: none !important;
+/* ✅ Hide default cursor ONLY on desktop */
+@media (min-width: 640px) {
+  * {
+    cursor: none !important;
+  }
 }
 
 /* ✨ Smaller custom cursor with softer glow */
 .custom-cursor {
-  width: 15px;               /* Smaller size */
+  width: 15px;
   height: 15px;
   border-radius: 50%;
   position: fixed;
   pointer-events: none;
   background: white;
-  box-shadow: 0 0 4px 2px white; /* Reduced glow */
+  box-shadow: 0 0 4px 2px white;
   transform: translate(-50%, -50%);
   z-index: 9999;
   mix-blend-mode: difference;
@@ -28,13 +30,13 @@ body {
 /* ✨ Smaller trailing particles with reduced glow */
 .cursor-particle {
   position: fixed;
-  width: 3px;                   /* Smaller size */
+  width: 3px;
   height: 3px;
   border-radius: 50%;
   background: white;
   pointer-events: none;
   z-index: 9999;
-  box-shadow: 0 0 6px 2px white; /* Softer glow */
+  box-shadow: 0 0 6px 2px white;
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
   transition: transform 0.5s ease-out, opacity 0.5s ease-out;
@@ -61,15 +63,15 @@ body {
 }
 
 .custom-scroll::-webkit-scrollbar-track {
-  background: #1f1f1f; /* Dark gray track */
+  background: #1f1f1f;
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
-  background-color: #9333ea; /* Purple thumb */
+  background-color: #9333ea;
   border-radius: 6px;
 }
 
 .custom-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #9333ea #1f1f1f; /* For Firefox */
+  scrollbar-color: #9333ea #1f1f1f;
 }
