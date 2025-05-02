@@ -5,7 +5,7 @@ import Quiz from "./Quiz";
 import About from "./about";
 import Profile from "./Profile";
 import Dashboard from "./Dashboard";
-import UsernamePrompt from "./UsernamePrompt"; // Using UsernamePrompt as the entry page
+import UsernamePrompt from "./UsernamePrompt";
 import LearningJourney from "./LearningJourney";
 import TakeQuizPrompt from "./TakeQuizPrompt";
 import "./index.css";
@@ -15,6 +15,9 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+    if (isTouchDevice) return; // Skip cursor effect on mobile devices
+
     const cursor = document.createElement("div");
     cursor.classList.add("custom-cursor");
     document.body.appendChild(cursor);
@@ -54,7 +57,7 @@ function App() {
       setLoading(true);
       const timer = setTimeout(() => {
         setLoading(false);
-      }, 1000); // 1 second
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [username]);
@@ -70,18 +73,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          path="/usernameprompt"
-          element={<UsernamePrompt setUsername={setUsername} />}
-        />
+        <Route path="/usernameprompt" element={<UsernamePrompt setUsername={setUsername} />} />
         <Route
           path="/"
           element={
-            username ? (
-              <Home username={username} />
-            ) : (
-              <Navigate to="/usernameprompt" replace />
-            )
+            username ? <Home username={username} /> : <Navigate to="/usernameprompt" replace />
           }
         />
         <Route path="/check-quiz/:skill" element={<TakeQuizPrompt />} />
