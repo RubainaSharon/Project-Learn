@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import Navbar from "./navbar";
 import axios from "axios";
 import confetti from "canvas-confetti";
-import { FaBook, FaFileAlt } from "react-icons/fa"; // Icons for toggle buttons
+import { FaLock, FaCheckCircle, FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 export default function LearningJourney() {
   const { skill } = useParams();
@@ -15,7 +15,7 @@ export default function LearningJourney() {
   const [lastGeneratedTime, setLastGeneratedTime] = useState(null);
   const [generateMessage, setGenerateMessage] = useState("");
   const [showCelebration, setShowCelebration] = useState(false);
-  const [showScript, setShowScript] = useState(false); // Toggle state for mobile
+  const [expandedChapter, setExpandedChapter] = useState(null); // for mobile accordion
 
   useEffect(() => {
     const fetchJourney = async () => {
@@ -79,7 +79,7 @@ export default function LearningJourney() {
     }
   };
 
-  const generateNextChapter = async () => {
+  const generateNextChapter = async (index) => {
     const now = Date.now();
     const timeSinceLastGenerated = lastGeneratedTime ? now - lastGeneratedTime : Infinity;
     const minDelay = 60 * 1000;
@@ -92,7 +92,7 @@ export default function LearningJourney() {
       setTimeout(() => setGenerateMessage(""), minDelay - timeSinceLastGenerated);
       return;
     }
-    const nextIndex = currentChapterIndex + 1;
+    const nextIndex = index + 1;
     if (nextIndex >= learningJourney.chapters.length) {
       setError("No more chapters to generate.");
       return;
@@ -101,12 +101,11 @@ export default function LearningJourney() {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`
+        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${index}`
       );
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
       setLearningJourney(updated);
-      setCurrentChapterIndex(nextIndex);
       setLastGeneratedTime(now);
       setGenerateMessage("");
     } catch (err) {
@@ -116,14 +115,6 @@ export default function LearningJourney() {
       setLoading(false);
     }
   };
-
-  const current = learningJourney.chapters[currentChapterIndex] || {};
-  const isUnlocked = !!current.script || currentChapterIndex === 0;
-  const canShow = currentChapterIndex === 0 || learningJourney.chapters[currentChapterIndex - 1]?.completed;
-  const cleanedScript =
-    currentChapterIndex === 0 && current.script
-      ? current.script.replace(/\*\*/g, "").replace(/#/g, "").replace(/"/g, "").trim()
-      : current.script;
 
   if (loading && !generateMessage) {
     return (
@@ -144,141 +135,177 @@ export default function LearningJourney() {
   return (
     <div className="min-h-screen bg-black text-white pt-16 px-2 sm:px-4 lg:px-6 pb-4">
       <Navbar />
-      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-4">
-        {/* Toggle Buttons for Mobile */}
-        <div className="lg:hidden flex justify-around mb-4">
-          <button
-            onClick={() => setShowScript(false)}
-            className={`px-4 py-2 text-lg rounded-lg flex items-center gap-2 ${
-              !showScript ? "bg-purple-600 text-white" : "bg-gray-600 text-gray-300"
-            }`}
-          >
-            <FaBook /> Chapters
-          </button>
-          <button
-            onClick={() => setShowScript(true)}
-            className={`px-4 py-2 text-lg rounded-lg flex items-center gap-2 ${
-              showScript ? "bg-purple-600 text-white" : "bg-gray-600 text-gray-300"
-            }`}
-            disabled={!isUnlocked || !canShow}
-          >
-            <FaFileAlt /> Script
-          </button>
-        </div>
 
-        {/* Sidebar (Chapters) - Hidden on mobile when script is shown */}
-        <aside
-          className={`custom-scroll w-full lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-3 sm:p-4 lg:p-6 space-y-2 sm:space-y-3 h-[calc(100vh-6rem)] overflow-y-auto sticky top-20 ${
-            showScript && "hidden lg:block"
-          }`}
-        >
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-center text-purple-400">
-            Chapters
-          </h2>
-          {learningJourney.chapters.length > 0 ? (
-            learningJourney.chapters.map((ch, i) => {
-              const topics = ch.topics?.length ? ch.topics.join(", ") : "Topic A, Topic B, Topic C";
-              return (
-                <div
-                  key={i}
-                  className={`p-2 sm:p-3 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
-                    i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
-                  }`}
-                  onClick={() => {
-                    setCurrentChapterIndex(i);
-                    setShowScript(true); // Show script on mobile when a chapter is selected
-                  }}
-                >
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold">
+      {/* Mobile Layout: Accordion Style */}
+      <div className="lg:hidden max-w-3xl mx-auto space-y-4 mt-4">
+        <h2 className="text-2xl font-bold text-purple-400 text-center">Your Learning Journey</h2>
+        {learningJourney.chapters.map((ch, i) => {
+          const isUnlocked = i === 0 || learningJourney.chapters[i - 1]?.completed;
+          const isExpanded = expandedChapter === i;
+          const cleanedScript = ch.script?.replace(/\*\*/g, "").replace(/#/g, "").replace(/"/g, "").trim();
+          return (
+            <div
+              key={i}
+              className={`rounded-xl border border-gray-700 p-4 transition ${
+                isUnlocked ? "bg-gray-800" : "bg-gray-900 opacity-60"
+              }`}
+            >
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => isUnlocked && setExpandedChapter(isExpanded ? null : i)}
+              >
+                <div>
+                  <h3 className="text-lg font-bold">
                     Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}
                   </h3>
-                  <p className="text-sm sm:text-base mt-1 text-gray-300">{topics}</p>
+                  <p className="text-sm text-gray-400">{ch.topics?.join(", ") || "Topics loading..."}</p>
                 </div>
-              );
-            })
-          ) : (
-            <p className="text-gray-400 text-sm sm:text-base">No chapters available.</p>
-          )}
+                <div className="text-xl">
+                  {!isUnlocked ? (
+                    <FaLock title="Locked" className="text-red-500" />
+                  ) : isExpanded ? (
+                    <FaChevronUp />
+                  ) : (
+                    <FaChevronDown />
+                  )}
+                </div>
+              </div>
+
+              {isExpanded && isUnlocked && (
+                <div className="mt-4 text-sm text-gray-300">
+                  <p className="mb-2">{ch.description || "No description available."}</p>
+                  <p className="mb-2">
+                    <strong>Script:</strong>
+                    <br />
+                    <span className="whitespace-pre-wrap">{cleanedScript || "No script available."}</span>
+                  </p>
+                  <p className="mb-2">
+                    <strong>Summary:</strong> {ch.summary || "No summary available."}
+                  </p>
+                  <button
+                    onClick={() => handleProgressUpdate(i, !ch.completed)}
+                    className={`mt-2 w-full py-2 rounded-lg text-white text-sm font-semibold ${
+                      ch.completed ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
+                    }`}
+                  >
+                    {ch.completed ? "Mark as Incomplete" : "Mark as Completed"}
+                  </button>
+                  {ch.completed && i + 1 < learningJourney.chapters.length && (
+                    <button
+                      onClick={() => generateNextChapter(i)}
+                      disabled={loading || generateMessage}
+                      className={`mt-2 w-full py-2 rounded-lg text-white text-sm font-semibold ${
+                        loading || generateMessage ? "bg-gray-600 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+                      }`}
+                    >
+                      Generate Next Chapter
+                    </button>
+                  )}
+                  {generateMessage && <p className="mt-2 text-yellow-400 text-xs">{generateMessage}</p>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Web Layout: Original Version */}
+      <div className="hidden lg:flex flex-col lg:flex-row max-w-7xl mx-auto gap-4">
+        {/* Sidebar */}
+        <aside className="custom-scroll w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-3 h-[calc(100vh-6rem)] overflow-y-auto sticky top-20">
+          <h2 className="text-2xl font-bold mb-3 text-center text-purple-400">Chapters</h2>
+          {learningJourney.chapters.map((ch, i) => {
+            const topics = ch.topics?.length ? ch.topics.join(", ") : "Topic A, Topic B, Topic C";
+            return (
+              <div
+                key={i}
+                className={`p-3 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
+                  i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
+                }`}
+                onClick={() => setCurrentChapterIndex(i)}
+              >
+                <h3 className="text-xl font-bold">
+                  Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}
+                </h3>
+                <p className="text-sm mt-1 text-gray-300">{topics}</p>
+              </div>
+            );
+          })}
         </aside>
 
-        {/* Main Content (Script) - Hidden on mobile when chapters are shown */}
-        <main
-          className={`w-full lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 sm:p-6 lg:p-10 shadow-xl ${
-            !showScript && "hidden lg:block"
-          }`}
-        >
-          {canShow && isUnlocked ? (
+        {/* Main Script */}
+        <main className="w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-10 shadow-xl">
+          {learningJourney.chapters[currentChapterIndex] ? (
             <>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-300 mb-2 sm:mb-3">
-                Chapter {current.chapter || currentChapterIndex + 1}: {current.title || "Untitled"}
+              <h2 className="text-3xl font-bold text-blue-300 mb-3">
+                Chapter {learningJourney.chapters[currentChapterIndex].chapter || currentChapterIndex + 1}:{" "}
+                {learningJourney.chapters[currentChapterIndex].title || "Untitled"}
               </h2>
-              <p className="text-lg sm:text-xl mb-2 sm:mb-3 text-gray-300">
-                {current.description || "No description available."}
+              <p className="text-xl mb-3 text-gray-300">
+                {learningJourney.chapters[currentChapterIndex].description || "No description available."}
               </p>
-              <p className="text-base sm:text-lg mb-2 sm:mb-3">
+              <p className="text-lg mb-3">
                 Topics:{" "}
                 <span className="text-gray-400">
-                  {current.topics?.length ? current.topics.join(", ") : "Topic A, Topic B, Topic C"}
+                  {learningJourney.chapters[currentChapterIndex].topics?.join(", ") || "No topics listed"}
                 </span>
               </p>
               <div className="text-left">
-                <strong className="text-xl sm:text-2xl">Script:</strong>
-                <p className="mt-2 sm:mt-3 whitespace-pre-wrap text-base sm:text-lg text-gray-200">
-                  {cleanedScript || "No script available."}
+                <strong className="text-2xl">Script:</strong>
+                <p className="mt-3 whitespace-pre-wrap text-lg text-gray-200">
+                  {learningJourney.chapters[currentChapterIndex].script?.replace(/\*\*/g, "").replace(/#/g, "") ||
+                    "No script available."}
                 </p>
               </div>
-              <p className="mt-4 sm:mt-6 text-base sm:text-lg text-gray-400">
-                <strong>Summary:</strong> {current.summary || "No summary available."}
+              <p className="mt-6 text-lg text-gray-400">
+                <strong>Summary:</strong> {learningJourney.chapters[currentChapterIndex].summary || "No summary available."}
               </p>
               <button
-                onClick={() => handleProgressUpdate(currentChapterIndex, !current.completed)}
-                className={`mt-4 sm:mt-6 px-4 sm:px-6 py-2 sm:py-3 text-lg sm:text-xl rounded-lg text-white ${
-                  current.completed ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
+                onClick={() =>
+                  handleProgressUpdate(currentChapterIndex, !learningJourney.chapters[currentChapterIndex].completed)
+                }
+                className={`mt-6 px-6 py-3 text-xl rounded-lg text-white ${
+                  learningJourney.chapters[currentChapterIndex].completed
+                    ? "bg-yellow-600 hover:bg-yellow-700"
+                    : "bg-green-600 hover:bg-green-700"
                 }`}
-                disabled={loading}
               >
-                {current.completed ? "Mark as Incomplete" : "Mark as Completed"}
+                {learningJourney.chapters[currentChapterIndex].completed ? "Mark as Incomplete" : "Mark as Completed"}
               </button>
-              {current.completed && currentChapterIndex + 1 < learningJourney.chapters.length && (
-                <div className="mt-4 sm:mt-6">
-                  <button
-                    onClick={generateNextChapter}
-                    className={`mt-2 sm:mt-4 ml-0 sm:ml-4 px-4 sm:px-6 py-2 sm:py-3 text-lg sm:text-xl rounded-lg text-white ${
-                      loading || generateMessage
-                        ? "bg-gray-600 cursor-not-allowed"
-                        : "bg-purple-600 hover:bg-purple-700"
-                    }`}
-                    disabled={loading || generateMessage}
-                  >
-                    Generate Next Chapter
-                  </button>
-                  {loading && (
-                    <p className="mt-2 text-sm sm:text-base text-gray-400">
-                      ⏳ Please wait, the chapter is being generated...
-                    </p>
-                  )}
-                  {generateMessage && (
-                    <p className="mt-2 text-sm sm:text-base text-yellow-400">{generateMessage}</p>
-                  )}
-                </div>
-              )}
+              {learningJourney.chapters[currentChapterIndex].completed &&
+                currentChapterIndex + 1 < learningJourney.chapters.length && (
+                  <div className="mt-6">
+                    <button
+                      onClick={() => generateNextChapter(currentChapterIndex)}
+                      className={`px-6 py-3 text-xl rounded-lg text-white ${
+                        loading || generateMessage
+                          ? "bg-gray-600 cursor-not-allowed"
+                          : "bg-purple-600 hover:bg-purple-700"
+                      }`}
+                      disabled={loading || generateMessage}
+                    >
+                      Generate Next Chapter
+                    </button>
+                    {generateMessage && <p className="mt-2 text-yellow-400 text-sm">{generateMessage}</p>}
+                  </div>
+                )}
             </>
           ) : (
-            <p className="text-lg sm:text-xl text-yellow-400">
-              🔒 Complete the previous chapters to unlock this.
-            </p>
+            <p className="text-lg text-yellow-400">🔒 Complete the previous chapters to unlock this.</p>
           )}
         </main>
       </div>
+
+      {/* Celebration Modal */}
       {showCelebration && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="text-center">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 animate-bounce">
-              Yay! You've completed the course!
+            <h2 className="text-4xl font-extrabold text-white mb-4 animate-bounce">
+              🎉 Yay! You've completed the course!
             </h2>
             <button
               onClick={() => setShowCelebration(false)}
-              className="mt-4 sm:mt-6 px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-lg sm:text-xl rounded-lg"
+              className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white text-xl rounded-lg"
             >
               Close
             </button>
