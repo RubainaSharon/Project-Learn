@@ -18,6 +18,7 @@ const Quiz = ({ username }) => {
 
   const canvasRef = useRef(null);
   const appRef = useRef(null);
+  const timeoutsRef = useRef([]); // Store setTimeout IDs
 
   // Initialize PixiJS animation
   useEffect(() => {
@@ -148,7 +149,12 @@ const Quiz = ({ username }) => {
           line.moveTo(ship.position.x, ship.position.y);
           line.lineTo(target.position.x, target.position.y);
           app.stage.addChild(line);
-          setTimeout(() => line.destroy(), 100);
+          const timeoutId = setTimeout(() => {
+            if (line && !line.destroyed) {
+              line.destroy();
+            }
+          }, 100);
+          timeoutsRef.current.push(timeoutId);
         }
       });
 
@@ -172,12 +178,17 @@ const Quiz = ({ username }) => {
         nebula.endFill();
         nebula.position.set(Math.random() * app.screen.width, Math.random() * app.screen.height);
         app.stage.addChild(nebula);
-        setTimeout(() => nebula.destroy(), 2000);
+        const timeoutId = setTimeout(() => {
+          if (nebula && !nebula.destroyed) {
+            nebula.destroy();
+          }
+        }, 2000);
+        timeoutsRef.current.push(timeoutId);
       }
     });
 
     // Interaction handling
-    app.stage.interactive = true;
+    app.stage.eventMode = 'static'; // Updated to use eventMode instead of interactive
     let lastInteraction = 0;
     const handleInteraction = (x, y) => {
       const now = Date.now();
@@ -196,36 +207,13 @@ const Quiz = ({ username }) => {
         ripple.scale.set(scale);
         ripple.alpha = 1 - scale / 3;
         if (scale > 3) {
-          ripple.destroy();
+          if (ripple && !ripple.destroyed) {
+            ripple.destroy();
+          }
           app.ticker.remove(rippleTicker);
         }
       };
       app.ticker.add(rippleTicker);
-
-      // Affect nearby entities
-      whales.forEach((w) => {
-        const dist = Math.hypot(w.position.x - x, w.position.y - y);
-        if (dist < 100) {
-          w.velocity.x += (w.position.x - x) * 0.05;
-          w.velocity.y += (w.position.y - y) * 0.05;
-          for (let i = 0; i < 5; i++) createParticle(w.position.x, w.position.y, 0x4b0082);
-        }
-      });
-      jellyfish.forEach((j) => {
-        const dist = Math.hypot(j.position.x - x, j.position.y - y);
-        if (dist < 100) {
-          j.scale.set(1.5);
-          for (let i = 0; i < 5; i++) createParticle(j.position.x, j.position.y, 0x00b7eb);
-        }
-      });
-      starships.forEach((s) => {
-        const dist = Math.hypot(s.position.x - x, s.position.y - y);
-        if (dist < 100) {
-          s.velocity.x += (Math.random() - 0.5) * 5;
-          s.velocity.y += (Math.random() - 0.5) * 5;
-          for (let i = 0; i < 3; i++) createParticle(s.position.x, s.position.y, 0xff4500);
-        }
-      });
     };
 
     // Mouse events
@@ -270,6 +258,10 @@ const Quiz = ({ username }) => {
 
     // Clean up
     return () => {
+      // Clear all pending timeouts
+      timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      timeoutsRef.current = [];
+
       if (appRef.current) {
         appRef.current.destroy(true, true);
         appRef.current = null;
