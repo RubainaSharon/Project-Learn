@@ -79,7 +79,7 @@ const Quiz = ({ username }) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative">
+    <div className="min-h-screen bg-black text-white">
       <Navbar />
       <div className="flex items-center justify-center min-h-screen">
         <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg">
@@ -89,7 +89,7 @@ const Quiz = ({ username }) => {
                 Your Score: {score} / {questions.length}
               </h2>
               <p className="mt-4 text-gray-300">
-                Redirecting to your learning journey... This may take a few moments.
+                Redirecting to your learning journey... This may take a few moments. Play along with the mouse until then.
               </p>
             </div>
           ) : questions.length > 0 ? (
@@ -135,11 +135,8 @@ const Quiz = ({ username }) => {
               {error ? (
                 <p className="text-red-500">{error}</p>
               ) : (
-                <div className="text-center">
-                  <div className="flex justify-center items-center h-32">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
-                  </div>
-                  <p className="mt-4 text-gray-300">Loading quiz...</p>
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
                 </div>
               )}
             </div>
