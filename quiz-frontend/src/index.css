@@ -13,18 +13,6 @@ body {
   }
 }
 
-/* Animation canvas */
-.animation-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: auto; /* Allow interaction with canvas */
-  opacity: 1; /* Ensure canvas is visible */
-}
-
 /* ✨ Smaller custom cursor with softer glow */
 .custom-cursor {
   width: 15px;
