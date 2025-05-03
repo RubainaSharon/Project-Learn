@@ -6,9 +6,9 @@ body {
   @apply m-0 bg-gray-100 text-gray-900 font-sans;
 }
 
-/* ✅ Hide default cursor ONLY on desktop and ensure it applies universally */
+/* ✅ Hide default cursor ONLY on desktop */
 @media (min-width: 640px) {
-  html, body, *, *:before, *:after {
+  * {
     cursor: none !important;
   }
 }
@@ -42,33 +42,11 @@ body {
   transition: transform 0.5s ease-out, opacity 0.5s ease-out;
 }
 
-/* On desktop, ensure quiz UI elements don't revert to default cursor */
-@media (min-width: 640px) {
-  .animation-canvas ~ * {
-    cursor: none !important;
-  }
-}
-
-/* On mobile, ensure default cursor is visible */
-@media (max-width: 639px) {
-  html, body, * {
-    cursor: auto !important;
-  }
-  .custom-cursor, .cursor-particle {
-    display: none; /* Hide custom cursor on mobile */
-  }
-}
-
-/* Normal cursor for input/textarea fields on all devices */
+/* Normal cursor for input/textarea fields */
 input,
 textarea {
   user-select: text;
   cursor: auto !important;
-}
-
-/* Ensure buttons and labels have consistent cursor behavior */
-button, label.cursor-pointer {
-  cursor: pointer !important; /* Use pointer for interactive elements */
 }
 
 /* Prevent text selection outside inputs */
