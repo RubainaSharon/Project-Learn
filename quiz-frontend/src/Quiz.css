@@ -1,0 +1,27 @@
+.quiz-bg {
+  background-image: url("/quiz-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.quiz-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: black;
+  z-index: 1;
+  opacity: 0.96;
+}
+
+.spotlight {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 80%);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
