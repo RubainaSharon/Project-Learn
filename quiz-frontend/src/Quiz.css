@@ -1,19 +1,24 @@
+/* Fullscreen background image */
 .quiz-bg {
-  background-image: url("/quiz-bg.jpg");
+  background-image: url("/quiz-bg.jpg"); /* Assuming it's in the public folder */
   background-size: cover;
   background-position: center;
-  position: relative;
+  position: fixed;
+  inset: 0;
+  z-index: 0; /* Behind everything */
 }
 
+/* Dark overlay on top of background image */
 .quiz-bg::before {
   content: "";
   position: absolute;
   inset: 0;
   background-color: black;
-  z-index: 1;
-  opacity: 0.96;
+  opacity: 0.96; /* Nearly full dimming */
+  z-index: 1; /* Between background and spotlight/content */
 }
 
+/* Spotlight effect following cursor */
 .spotlight {
   position: fixed;
   width: 200px;
@@ -23,5 +28,5 @@
   background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 80%);
   mix-blend-mode: screen;
   transform: translate(-50%, -50%);
-  z-index: 2;
+  z-index: 2; /* Above overlay, below content */
 }
