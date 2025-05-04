@@ -33,6 +33,16 @@ const Quiz = ({ username }) => {
     fetchQuestions();
   }, [skill]);
 
+  useEffect(() => {
+    const spotlight = document.getElementById("spotlight");
+    const handleMouseMove = (e) => {
+      spotlight.style.left = `${e.clientX}px`;
+      spotlight.style.top = `${e.clientY}px`;
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   const handleOptionSelect = (option) => {
     setSelectedOption(option);
     const updatedAnswers = [...userAnswers];
@@ -80,10 +90,15 @@ const Quiz = ({ username }) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Spotlight Background */}
+      <div className="quiz-bg">
+        <div className="spotlight" id="spotlight"></div>
+      </div>
+
       <Navbar />
       <div className="flex items-center justify-center min-h-screen">
-        <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg">
+        <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg relative z-10">
           {showScore ? (
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">
