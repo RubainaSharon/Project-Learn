@@ -27,9 +27,9 @@
   z-index: 2; /* Above the overlay */
 }
 
-/* Optional: Add some spacing for better readability */
+/* Remove padding for quiz content to avoid box-like spacing */
 .max-w-2xl {
-  padding: 1.5rem;
+  padding: 0;
 }
 
 /* Style for radio buttons and labels */
