@@ -27,9 +27,9 @@
   z-index: 2; /* Above the overlay */
 }
 
-/* Remove padding for quiz content to avoid box-like spacing */
+/* Add padding for quiz content to match Tailwind's p-6 */
 .max-w-2xl {
-  padding: 0;
+  padding: 1.5rem;
 }
 
 /* Style for radio buttons and labels */
