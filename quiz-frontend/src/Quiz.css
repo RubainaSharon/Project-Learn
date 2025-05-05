@@ -1,6 +1,6 @@
 /* Fullscreen background image */
 .quiz-bg {
-  background-image: url("./assets/quiz-bg.jpg"); 
+  background-image: url("./assets/quiz-bg.jpg");
   background-size: cover;
   background-position: center;
   position: fixed;
@@ -8,25 +8,36 @@
   z-index: 0; /* Behind everything */
 }
 
-/* Dark overlay on top of background image */
+/* Dark overlay with dynamic spotlight */
 .quiz-bg::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-color: black;
-  opacity: 0.96; /* Nearly full dimming */
-  z-index: 1; /* Between background and spotlight/content */
+  background: radial-gradient(
+    circle 100px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    transparent 0%,
+    black 100%
+  );
+  z-index: 1; /* Between background and content */
 }
 
-/* Spotlight effect following cursor */
-.spotlight {
-  position: fixed;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 80%);
-  mix-blend-mode: screen;
-  transform: translate(-50%, -50%);
-  z-index: 2; /* Above overlay, below content */
+/* Ensure quiz content is visible above the overlay */
+.min-h-screen {
+  position: relative;
+  z-index: 2; /* Above the overlay */
+}
+
+/* Optional: Add some spacing for better readability */
+.max-w-2xl {
+  padding: 1.5rem;
+}
+
+/* Style for radio buttons and labels */
+input[type="radio"] {
+  accent-color: #3b82f6; /* Tailwind's blue-600 */
+}
+
+/* Style for disabled button */
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
 }
