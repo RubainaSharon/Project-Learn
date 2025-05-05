@@ -1,6 +1,6 @@
 /* Fullscreen background image */
 .quiz-bg {
-  background-image: url("./quiz-bg.jpg"); 
+  background-image: url("./assets/quiz-bg.jpg"); 
   background-size: cover;
   background-position: center;
   position: fixed;
