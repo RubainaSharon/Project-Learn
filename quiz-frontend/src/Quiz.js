@@ -16,6 +16,7 @@ const Quiz = ({ username }) => {
   const [showScore, setShowScore] = useState(false);
   const [error, setError] = useState("");
 
+  // Fetch questions for the selected skill
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -33,12 +34,20 @@ const Quiz = ({ username }) => {
     fetchQuestions();
   }, [skill]);
 
+  // Spotlight effect: Update --mouse-x and --mouse-y CSS variables
   useEffect(() => {
-    const spotlight = document.getElementById("spotlight");
     const handleMouseMove = (e) => {
-      spotlight.style.left = `${e.clientX}px`;
-      spotlight.style.top = `${e.clientY}px`;
+      const quizBg = document.querySelector(".quiz-bg");
+      if (quizBg) {
+        const { clientX, clientY } = e;
+        const { width, height } = quizBg.getBoundingClientRect();
+        const xPercent = (clientX / width) * 100;
+        const yPercent = (clientY / height) * 100;
+        quizBg.style.setProperty("--mouse-x", `${xPercent}%`);
+        quizBg.style.setProperty("--mouse-y", `${yPercent}%`);
+      }
     };
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -91,10 +100,8 @@ const Quiz = ({ username }) => {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Spotlight Background */}
-      <div className="quiz-bg">
-        <div className="spotlight" id="spotlight"></div>
-      </div>
+      {/* Background with spotlight effect */}
+      <div className="quiz-bg"></div>
 
       <Navbar />
       <div className="flex items-center justify-center min-h-screen">
