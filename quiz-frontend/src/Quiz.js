@@ -105,7 +105,7 @@ const Quiz = ({ username }) => {
 
       <Navbar />
       <div className="flex items-center justify-center min-h-screen">
-        <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg relative z-10">
+        <div className="max-w-2xl w-full relative z-10">
           {showScore ? (
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">
