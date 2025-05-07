@@ -7,7 +7,6 @@ import "./Quiz.css";
 const Quiz = ({ username }) => {
   const { skill } = useParams();
   const navigate = useNavigate();
-
   const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -36,10 +35,9 @@ const Quiz = ({ username }) => {
 
   // Spotlight effect: Update --mouse-x and --mouse-y CSS variables
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const updatePosition = (clientX, clientY) => {
       const quizBg = document.querySelector(".quiz-bg");
       if (quizBg) {
-        const { clientX, clientY } = e;
         const { width, height } = quizBg.getBoundingClientRect();
         const xPercent = (clientX / width) * 100;
         const yPercent = (clientY / height) * 100;
@@ -48,8 +46,24 @@ const Quiz = ({ username }) => {
       }
     };
 
+    const handleMouseMove = (e) => {
+      updatePosition(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault(); // Prevent scrolling while dragging
+      if (e.touches && e.touches.length > 0) {
+        updatePosition(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
   }, []);
 
   const handleOptionSelect = (option) => {
@@ -102,7 +116,6 @@ const Quiz = ({ username }) => {
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Background with spotlight effect */}
       <div className="quiz-bg"></div>
-
       <Navbar />
       <div className="flex items-center justify-center min-h-screen">
         <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg relative z-10">
