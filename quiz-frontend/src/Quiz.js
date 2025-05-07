@@ -124,7 +124,7 @@ const Quiz = ({ username }) => {
               Your Score: {score} / {questions.length}
             </h2>
             <p className="mt-4 text-gray-300">
-              Redirecting to your learning journey... This may take a few moments. Play along with the mouse until then.
+              Redirecting to your learning journey... This may take a few moments. Try to find out who is in the background until then.
             </p>
           </div>
         ) : (
