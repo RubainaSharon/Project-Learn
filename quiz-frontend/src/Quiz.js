@@ -14,6 +14,7 @@ const Quiz = ({ username }) => {
   const [score, setScore] = useState(0);
   const [showScore, setShowScore] = useState(false);
   const [error, setError] = useState("");
+  const [showPopup, setShowPopup] = useState(false); // State for custom popup
 
   // Fetch questions for the selected skill
   useEffect(() => {
@@ -88,7 +89,7 @@ const Quiz = ({ username }) => {
         return newScore;
       });
     } else {
-      alert("Please select an option before proceeding.");
+      setShowPopup(true); // Show custom popup instead of alert
     }
   };
 
@@ -123,8 +124,8 @@ const Quiz = ({ username }) => {
             <h2 className="text-2xl font-bold mb-4">
               Your Score: {score} / {questions.length}
             </h2>
-            <p className="mt-4 text-gray-300">
-              Redirecting to your learning journey... This may take a few moments. Try to find out who is in the background until then.
+            <p className="mt-4 text-gray-300 text-xl">
+              AI is creating your Learning Journey... This may take a few moments. Try to find out who is in the background until then.
             </p>
           </div>
         ) : (
@@ -181,6 +182,23 @@ const Quiz = ({ username }) => {
           </div>
         )}
       </div>
+
+      {/* Custom Popup */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
+            <p className="text-lg text-white mb-4">
+              Please select an option to continue.
+            </p>
+            <button
+              onClick={() => setShowPopup(false)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
