@@ -118,66 +118,68 @@ const Quiz = ({ username }) => {
       <div className="quiz-bg"></div>
       <Navbar />
       <div className="flex items-center justify-center min-h-screen">
-        <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg relative z-10">
-          {showScore ? (
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">
-                Your Score: {score} / {questions.length}
-              </h2>
-              <p className="mt-4 text-gray-300">
-                Redirecting to your learning journey... This may take a few moments. Play along with the mouse until then.
-              </p>
-            </div>
-          ) : questions.length > 0 ? (
-            <div>
-              <h2 className="text-xl font-semibold mb-2">
-                Question {currentQuestion + 1}:
-              </h2>
-              <p className="text-lg mb-4">{questions[currentQuestion].question}</p>
-              {questions[currentQuestion].options.map((option, index) => (
-                <div key={index} className="mt-2">
-                  <input
-                    type="radio"
-                    id={`option${index}`}
-                    name="quiz"
-                    value={option}
-                    checked={selectedOption === option}
-                    onChange={() => handleOptionSelect(option)}
-                    className="mr-2"
-                  />
-                  <label htmlFor={`option${index}`} className="cursor-pointer">
-                    {option}
-                  </label>
+        {showScore ? (
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">
+              Your Score: {score} / {questions.length}
+            </h2>
+            <p className="mt-4 text-gray-300">
+              Redirecting to your learning journey... This may take a few moments. Play along with the mouse until then.
+            </p>
+          </div>
+        ) : (
+          <div className="max-w-2xl w-full mx-auto p-6 bg-gray-900 shadow-lg rounded-lg relative z-10">
+            {questions.length > 0 ? (
+              <div>
+                <h2 className="text-xl font-semibold mb-2">
+                  Question {currentQuestion + 1}:
+                </h2>
+                <p className="text-lg mb-4">{questions[currentQuestion].question}</p>
+                {questions[currentQuestion].options.map((option, index) => (
+                  <div key={index} className="mt-2">
+                    <input
+                      type="radio"
+                      id={`option${index}`}
+                      name="quiz"
+                      value={option}
+                      checked={selectedOption === option}
+                      onChange={() => handleOptionSelect(option)}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`option${index}`} className="cursor-pointer">
+                      {option}
+                    </label>
+                  </div>
+                ))}
+                <div className="mt-6 flex justify-between">
+                  <button
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md disabled:opacity-50"
+                    onClick={handlePreviousQuestion}
+                    disabled={currentQuestion === 0}
+                  >
+                    Back
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                    onClick={handleNextQuestion}
+                  >
+                    {currentQuestion === questions.length - 1 ? "Submit" : "Next"}
+                  </button>
                 </div>
-              ))}
-              <div className="mt-6 flex justify-between">
-                <button
-                  className="px-4 py-2 bg-gray-500 text-white rounded-md disabled:opacity-50"
-                  onClick={handlePreviousQuestion}
-                  disabled={currentQuestion === 0}
-                >
-                  Back
-                </button>
-                <button
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-                  onClick={handleNextQuestion}
-                >
-                  {currentQuestion === questions.length - 1 ? "Submit" : "Next"}
-                </button>
               </div>
-            </div>
-          ) : (
-            <div className="text-center">
-              {error ? (
-                <p className="text-red-500">{error}</p>
-              ) : (
-                <div className="flex justify-center items-center h-32">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="text-center">
+                {error ? (
+                  <p className="text-red-500">{error}</p>
+                ) : (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
