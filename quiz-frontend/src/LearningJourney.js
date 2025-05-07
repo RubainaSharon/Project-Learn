@@ -9,7 +9,6 @@ export default function LearningJourney() {
   const username = localStorage.getItem("username");
   const [learningJourney, setLearningJourney] = useState({ chapters: [] });
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
-  const [unlockedChapters, setUnlockedChapters] = useState([0]); // Initially, only Chapter 1 (index 0) is unlocked
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastGeneratedTime, setLastGeneratedTime] = useState(null);
@@ -22,20 +21,24 @@ export default function LearningJourney() {
         setLoading(true);
         const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
         const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
+
         if (!skillData || !skillData.learning_journey) {
           throw new Error("No learning journey found for this skill.");
         }
+
         const journey = skillData.learning_journey;
+
         const isPlaceholder = journey.chapters.some(
           (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
         );
+
         if (isPlaceholder) {
           setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
         } else {
           setError("");
         }
+
         setLearningJourney(journey);
-        setUnlockedChapters([0]); // Only Chapter 1 is unlocked initially
         setLastGeneratedTime(Date.now());
       } catch (err) {
         console.error("Failed to fetch learning journey", err);
@@ -64,6 +67,7 @@ export default function LearningJourney() {
       const updated = { ...learningJourney };
       updated.chapters[index].completed = completed;
       setLearningJourney(updated);
+
       if (index === 9 && completed) {
         setShowCelebration(true);
         confetti({
@@ -86,6 +90,7 @@ export default function LearningJourney() {
     const now = Date.now();
     const timeSinceLastGenerated = lastGeneratedTime ? now - lastGeneratedTime : Infinity;
     const minDelay = 60 * 1000;
+
     if (timeSinceLastGenerated < minDelay) {
       setGenerateMessage(
         `Can be generated only after a minute. Read this chapter first. (${Math.ceil(
@@ -108,13 +113,12 @@ export default function LearningJourney() {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}¤t_chapter=${currentChapterIndex}`
+        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`
       );
-      const updated = JSON.parse(JSON.stringify(learningJourney)); // Deep copy
+      const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
       setLearningJourney(updated);
-      setUnlockedChapters([...unlockedChapters, nextIndex]); // Unlock the next chapter
-      setCurrentChapterIndex(nextIndex); // Navigate to the next chapter
+      setCurrentChapterIndex(nextIndex);
       setLastGeneratedTime(now);
       setGenerateMessage("");
     } catch (err) {
@@ -126,8 +130,9 @@ export default function LearningJourney() {
   };
 
   const current = learningJourney.chapters[currentChapterIndex] || {};
-  const isUnlocked = unlockedChapters.includes(currentChapterIndex);
+  const isUnlocked = !!current.script || currentChapterIndex === 0;
   const canShow = currentChapterIndex === 0 || learningJourney.chapters[currentChapterIndex - 1]?.completed;
+
   const cleanedScript =
     currentChapterIndex === 0 && current.script
       ? current.script.replace(/\*\*/g, "").replace(/#/g, "").replace(/"/g, "").trim()
@@ -158,20 +163,15 @@ export default function LearningJourney() {
           {learningJourney.chapters.length > 0 ? (
             learningJourney.chapters.map((ch, i) => {
               const topics = ch.topics?.length ? ch.topics.join(", ") : "Topic A, Topic B, Topic C";
-              const isChapterUnlocked = unlockedChapters.includes(i);
-              const canChapterShow = i === 0 || learningJourney.chapters[i - 1]?.completed;
-              const isLocked = !isChapterUnlocked || !canChapterShow;
-
               return (
                 <div
                   key={i}
                   className={`p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
                     i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
                   }`}
-                  onClick={() => setCurrentChapterIndex(i)} // Always allow clicking
+                  onClick={() => setCurrentChapterIndex(i)}
                 >
-                  <h3 className="text-xl font-bold flex items-center">
-                    {isLocked && <span className="mr-2">🔒</span>}
+                  <h3 className="text-xl font-bold">
                     Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}
                   </h3>
                   <p className="text-sm mt-2 text-gray-300">{topics}</p>
@@ -182,6 +182,7 @@ export default function LearningJourney() {
             <p className="text-gray-400">No chapters available.</p>
           )}
         </aside>
+
         <main className="w-full lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-10 shadow-xl">
           {canShow && isUnlocked ? (
             <>
@@ -238,6 +239,7 @@ export default function LearningJourney() {
           )}
         </main>
       </div>
+
       {showCelebration && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="text-center">
