@@ -21,6 +21,17 @@
   z-index: 1; /* Between background and content */
 }
 
+/* Adjust spotlight size for mobile screens */
+@media (max-width: 640px) {
+  .quiz-bg::before {
+    background: radial-gradient(
+      circle 50px at var(--mouse-x, 50%) var(--mouse-y, 50%), /* Smaller circle for mobile */
+      transparent 0%,
+      black 100%
+    );
+  }
+}
+
 /* Ensure quiz content is visible above the overlay */
 .min-h-screen {
   position: relative;
