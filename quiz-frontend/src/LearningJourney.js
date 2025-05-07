@@ -108,7 +108,7 @@ export default function LearningJourney() {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}&current_chapter=${currentChapterIndex}`
+        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}¤t_chapter=${currentChapterIndex}`
       );
       const updated = JSON.parse(JSON.stringify(learningJourney)); // Deep copy
       updated.chapters[nextIndex] = res.data;
@@ -158,19 +158,20 @@ export default function LearningJourney() {
           {learningJourney.chapters.length > 0 ? (
             learningJourney.chapters.map((ch, i) => {
               const topics = ch.topics?.length ? ch.topics.join(", ") : "Topic A, Topic B, Topic C";
+              const isChapterUnlocked = unlockedChapters.includes(i);
+              const canChapterShow = i === 0 || learningJourney.chapters[i - 1]?.completed;
+              const isLocked = !isChapterUnlocked || !canChapterShow;
+
               return (
                 <div
                   key={i}
-                  className={`p-4 rounded-lg transition border hover:border-purple-400 ${
+                  className={`p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
                     i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
-                  } ${unlockedChapters.includes(i) ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
-                  onClick={() => {
-                    if (unlockedChapters.includes(i)) {
-                      setCurrentChapterIndex(i);
-                    }
-                  }}
+                  }`}
+                  onClick={() => setCurrentChapterIndex(i)} // Always allow clicking
                 >
-                  <h3 className="text-xl font-bold">
+                  <h3 className="text-xl font-bold flex items-center">
+                    {isLocked && <span className="mr-2">🔒</span>}
                     Chapter {ch.chapter || i + 1}: {ch.title || "Untitled"}
                   </h3>
                   <p className="text-sm mt-2 text-gray-300">{topics}</p>
