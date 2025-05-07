@@ -33,6 +33,12 @@ const Home = ({ username }) => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    fetch('https://project-learn.onrender.com/')
+      .then(() => console.log('Backend warmed up'))
+      .catch(() => console.log('Warming up failed, but proceeding...'));
+  }, []);
+
   const skillData = {
     Programming: ["C", "C++", "Python", "SQL", "Java", "JavaScript", "HTML", "CSS"],
     Technology: [
