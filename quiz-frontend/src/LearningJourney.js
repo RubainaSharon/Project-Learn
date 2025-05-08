@@ -113,7 +113,7 @@ export default function LearningJourney() {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `https://project-learn.onrender.com/generate-next-chapter?username=${username}&skill=${skill}¤t_chapter=${currentChapterIndex}`
+        `https://project-learn.onrender.com/generate-next-chapter?username=${encodeURIComponent(username)}&skill=${encodeURIComponent(skill)}&current_chapter=${currentChapterIndex}`
       );
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
