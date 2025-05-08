@@ -15,7 +15,7 @@ export default function LearningJourney() {
   const [lastGeneratedTime, setLastGeneratedTime] = useState(null);
   const [generateMessage, setGenerateMessage] = useState("");
   const [showCelebration, setShowCelebration] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // New state for sidebar toggle
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchJourney = async () => {
@@ -114,9 +114,15 @@ export default function LearningJourney() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get(
-        `https://project-learn.onrender.com/generate-next-chapter?username=${encodeURIComponent(username)}&skill=${encodeURIComponent(skill)}¤t_chapter=${currentChapterIndex}`
-      );
+      // Use URLSearchParams to properly encode query parameters
+      const params = new URLSearchParams({
+        username: username,
+        skill: skill,
+        current_chapter: currentChapterIndex.toString() // Correct parameter name and ensure it's a string
+      });
+      const url = `https://project-learn.onrender.com/generate-next-chapter?${params.toString()}`;
+      console.log('Constructed URL:', url); // Log URL for debugging
+      const res = await axios.get(url);
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
       setLearningJourney(updated);
@@ -177,7 +183,7 @@ export default function LearningJourney() {
           className={`custom-scroll w-full sm:w-3/4 lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-auto lg:h-[calc(100vh-7rem)] overflow-y-auto lg:sticky lg:top-28 fixed top-0 left-0 sm:relative transition-transform duration-300 ease-in-out z-10 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
           }`}
-          onClick={() => isSidebarOpen && toggleSidebar()} // Close sidebar when clicking a chapter on mobile
+          onClick={() => isSidebarOpen && toggleSidebar()}
         >
           <h2 className="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4 text-center text-purple-400 sm:block hidden">
             Chapters
