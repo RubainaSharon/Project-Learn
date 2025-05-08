@@ -91,16 +91,20 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
     for attempt in range(max_retries):
         try:
             prompt = (
-                f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
-                f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
-                f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
-                f"a title, a brief description, specific topics, online resources (with URLs), a detailed script (at least 100 words) "
-                f"with examples and explanations, and a summary of key takeaways. "
-                f"**Return the response as a valid JSON object with the following structure:** "
-                f"{{'level': 'string', 'chapters': [{{'chapter': number, 'title': 'string', 'description': 'string', 'topics': ['string'], "
-                f"'resources': ['string'], 'script': 'string', 'summary': 'string'}}]}}. "
-                f"Ensure the response is enclosed in triple backticks with the 'json' identifier, like this: ```json\n{{...}}\n```."
-            )
+    f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
+    f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
+    f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
+    f"a title, a brief description (1-2 sentences), specific topics (5-7 topics as a list), online resources (3-5 valid, working URLs from reputable sources like Microsoft, Google, or freeCodeCamp, aligning with current industry practices), "
+    f"a detailed script (at least 150 words) with practical real-world examples (e.g., 'In a retail company like Walmart, this SQL query might be used to track inventory...', 'At a tech company like Google, this Python script might analyze user data...', or 'In a healthcare setting like Mayo Clinic, this algorithm might predict patient outcomes...'), "
+    f"ensuring examples vary across chapters by using different industries or scenarios (e.g., retail, tech, healthcare, finance, education) for each chapter, "
+    f"a varied teaching style to avoid monotony (e.g., use storytelling, analogies, scenarios, or a conversational tone instead of standard explanations), "
+    f"and clear spacing between concepts (use '\\n\\n' to separate each major idea for readability within the JSON string), and a summary of key takeaways (2-3 sentences). "
+    f"For Chapter 1, start the script with the exact line: 'Yes, it was Gojo Satoru in the background image of the quiz page.' followed by '\\n\\n', then include a statement specifying the type of journey created based on the score, e.g., 'This is a Beginner to Intermediate journey,' 'This is an Intermediate to Advanced journey,' or 'This is an Advanced journey,' followed by the rest of the script content. "
+    f"**Return the response as a valid JSON object with the following structure:** "
+    f"{{'level': 'string', 'chapters': [{{'chapter': number, 'title': 'string', 'description': 'string', 'topics': ['string'], "
+    f"'resources': ['string'], 'script': 'string', 'summary': 'string'}}]}}. "
+    f"Ensure the response is enclosed in triple backticks with the 'json' identifier, like this: ```json\n{{...}}\n```."
+)
 
             data = {"contents": [{"parts": [{"text": prompt}]}]}
             try:
