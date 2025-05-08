@@ -95,7 +95,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
     f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
     f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
     f"a title, a brief description (1-2 sentences), specific topics (5-7 topics as a list), online resources (3-5 valid, working URLs from reputable sources like Microsoft, Google, or freeCodeCamp, aligning with current industry practices), "
-    f"a detailed script (at least 170 words) with practical real-world examples (e.g., 'In a retail company like Walmart, this SQL query might be used to track inventory...', 'At a tech company like Google, this Python script might analyze user data...', or 'In a healthcare setting like Mayo Clinic, this algorithm might predict patient outcomes...'), "
+    f"a detailed script (at least 150 words) with practical real-world examples (e.g., 'In a retail company like Walmart, this SQL query might be used to track inventory...', 'At a tech company like Google, this Python script might analyze user data...', or 'In a healthcare setting like Mayo Clinic, this algorithm might predict patient outcomes...'), "
     f"ensuring examples vary across chapters by using different industries or scenarios (e.g., retail, tech, healthcare, finance, education) for each chapter, "
     f"a varied teaching style to avoid monotony (e.g., use storytelling, analogies, scenarios, or a conversational tone instead of standard explanations), "
     f"and clear spacing between concepts (use '\\n\\n' to separate each major idea for readability within the JSON string), and a summary of key takeaways (2-3 sentences). "
