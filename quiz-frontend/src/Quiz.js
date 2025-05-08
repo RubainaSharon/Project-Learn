@@ -125,7 +125,7 @@ const Quiz = ({ username }) => {
               Your Score: {score} / {questions.length}
             </h2>
             <p className="mt-4 text-gray-300 text-xl">
-              AI is creating your Learning Journey... This may take a few moments. Try to find out who is in the background until then.
+              AI is creating your Learning Journey based on the score... This may take a few moments. Try to find out who is in the background until then.
             </p>
           </div>
         ) : (
