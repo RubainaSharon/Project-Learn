@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 from .database import SessionLocal, engine
 from . import models  # Updated to relative import
 from .schemas import QuestionList, UserScoreCreate, UpdateProgress, Question  # Updated to relative import
@@ -16,6 +17,24 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Optimize SQLAlchemy engine for Render
+# Ensure the connection pool can handle dropped connections
+engine.dispose()  # Close any existing connections
+from sqlalchemy import create_engine
+# Reconfigure the engine with connection pool settings
+# Note: Replace "postgresql+psycopg2://your_database_url" with your actual DATABASE_URL if needed
+# Since engine is imported from .database, we're overriding it here
+engine = create_engine(
+    engine.url,  # Reuse the existing URL from the imported engine
+    pool_size=5,  # Small pool size for Render's free tier
+    max_overflow=10,  # Allow some overflow connections
+    pool_timeout=30,  # Wait 30 seconds for a connection
+    pool_pre_ping=True,  # Check connection health before using it
+)
+
+# Log connection pool stats on startup
+logger.info(f"Connection pool initialized: {engine.pool.status()}")
 
 app = FastAPI()
 
@@ -44,11 +63,23 @@ headers = {"Content-Type": "application/json"}
 # Helper functions
 def has_taken_quiz_today(db: Session, username: str, skill: str):
     today = date.today()
-    user_skill = db.query(models.UserSkill).filter(
-        models.UserSkill.username.ilike(username),
-        models.UserSkill.skill.ilike(skill)
-    ).first()
-    return user_skill and user_skill.last_attempt_date == today
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            user_skill = db.query(models.UserSkill).filter(
+                models.UserSkill.username.ilike(username),
+                models.UserSkill.skill.ilike(skill)
+            ).first()
+            return user_skill and user_skill.last_attempt_date == today
+        except OperationalError as e:
+            logger.warning(f"Database connection error on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                # Exponential backoff: 1s, 2s, 4s
+                time.sleep(2 ** attempt)
+                db.rollback()  # Roll back the session to clear any transaction state
+                continue
+            logger.error(f"All retry attempts failed for has_taken_quiz_today: {e}")
+            raise HTTPException(status_code=503, detail="Database connection failed. Please try again later.")
 
 def get_api_calls_today(db: Session):
     today = date.today()
@@ -349,7 +380,7 @@ def get_available_skills(db: Session = Depends(get_db)):
 @app.get("/generate-next-chapter")
 def generate_next_chapter_endpoint(username: str, skill: str, current_chapter: int, db: Session = Depends(get_db)):
     return generate_next_chapter(db, username, skill, current_chapter)
-    
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Project Learn API! Use /docs for API documentation."}
