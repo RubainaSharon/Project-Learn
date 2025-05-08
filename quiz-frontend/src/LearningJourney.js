@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import Navbar from "./navbar";
 import axios from "axios";
 import confetti from "canvas-confetti";
+import { FaBars, FaTimes } from "react-icons/fa";
 
 export default function LearningJourney() {
   const { skill } = useParams();
@@ -14,6 +15,7 @@ export default function LearningJourney() {
   const [lastGeneratedTime, setLastGeneratedTime] = useState(null);
   const [generateMessage, setGenerateMessage] = useState("");
   const [showCelebration, setShowCelebration] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // New state for sidebar toggle
 
   useEffect(() => {
     const fetchJourney = async () => {
@@ -113,7 +115,7 @@ export default function LearningJourney() {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `https://project-learn.onrender.com/generate-next-chapter?username=${encodeURIComponent(username)}&skill=${encodeURIComponent(skill)}&current_chapter=${currentChapterIndex}`
+        `https://project-learn.onrender.com/generate-next-chapter?username=${encodeURIComponent(username)}&skill=${encodeURIComponent(skill)}¤t_chapter=${currentChapterIndex}`
       );
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
@@ -127,6 +129,10 @@ export default function LearningJourney() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   const current = learningJourney.chapters[currentChapterIndex] || {};
@@ -157,9 +163,25 @@ export default function LearningJourney() {
   return (
     <div className="min-h-screen bg-black text-white pt-16 px-2 pb-6 lg:pt-24 lg:px-4 lg:pb-10">
       <Navbar />
-      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-4 lg:gap-8">
-        <aside className="custom-scroll w-full lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-auto lg:h-[calc(100vh-7rem)] overflow-y-auto lg:sticky lg:top-28">
-          <h2 className="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4 text-center text-purple-400">Chapters</h2>
+      {/* Header with Toggle Button for Mobile */}
+      <header className="bg-gray-900 p-4 flex items-center justify-between sm:hidden mb-4 rounded-lg">
+        <h1 className="text-xl font-bold text-purple-400">Chapters</h1>
+        <button onClick={toggleSidebar} className="text-2xl text-white">
+          {isSidebarOpen ? <FaTimes /> : <FaBars />}
+        </button>
+      </header>
+
+      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-4 lg:gap-8 relative">
+        {/* Sidebar for Chapters */}
+        <aside
+          className={`custom-scroll w-full sm:w-3/4 lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-auto lg:h-[calc(100vh-7rem)] overflow-y-auto lg:sticky lg:top-28 fixed top-0 left-0 sm:relative transition-transform duration-300 ease-in-out z-10 ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
+          }`}
+          onClick={() => isSidebarOpen && toggleSidebar()} // Close sidebar when clicking a chapter on mobile
+        >
+          <h2 className="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4 text-center text-purple-400 sm:block hidden">
+            Chapters
+          </h2>
           {learningJourney.chapters.length > 0 ? (
             learningJourney.chapters.map((ch, i) => {
               const topics = ch.topics?.length ? ch.topics.join(", ") : "Topic A, Topic B, Topic C";
@@ -183,7 +205,16 @@ export default function LearningJourney() {
           )}
         </aside>
 
-        <main className="w-full lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-6 lg:p-10 shadow-xl">
+        {/* Overlay for Mobile */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 sm:hidden z-0"
+            onClick={toggleSidebar}
+          ></div>
+        )}
+
+        {/* Main Content */}
+        <main className="w-full sm:w-3/4 lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-6 lg:p-10 shadow-xl mx-auto sm:mx-0">
           {canShow && isUnlocked ? (
             <>
               <h2 className="text-3xl lg:text-4xl font-bold text-blue-300 mb-3 lg:mb-4">
