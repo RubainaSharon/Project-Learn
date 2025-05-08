@@ -69,7 +69,7 @@ const Home = ({ username }) => {
              text-[3.5rem] xs:text-6xl sm:text-7xl md:text-8xl 
              lg:text-9xl xl:text-[20rem] 
              leading-tight tracking-tight 
-             animate-mobile-learn drop-shadow-md"
+             animate-mobile-learn drop-shadow-md font-nebulax"
         >
           {typedText}
         </h1>
@@ -171,6 +171,14 @@ const Home = ({ username }) => {
 
 // Animation keyframes
 const styles = `
+  @font-face {
+    font-family: 'Nebulax';
+    src: url('./assets/Nebulax.ttf') format('truetype'),
+         url('./assets/Nebulax.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -200,6 +208,10 @@ const styles = `
 
   .animate-pulse-slow {
     animation: pulseSlow 2s infinite;
+  }
+
+  .font-nebulax {
+    font-family: 'Nebulax', sans-serif;
   }
 
   @media (max-width: 639px) {
