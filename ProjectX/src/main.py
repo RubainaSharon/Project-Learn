@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 engine.dispose()  # Close any existing connections
 from sqlalchemy import create_engine
 # Reconfigure the engine with connection pool settings
-# Note: Replace "postgresql+psycopg2://your_database_url" with your actual DATABASE_URL if needed
-# Since engine is imported from .database, we're overriding it here
 engine = create_engine(
     engine.url,  # Reuse the existing URL from the imported engine
     pool_size=5,  # Small pool size for Render's free tier
@@ -74,9 +72,8 @@ def has_taken_quiz_today(db: Session, username: str, skill: str):
         except OperationalError as e:
             logger.warning(f"Database connection error on attempt {attempt + 1}: {e}")
             if attempt < max_retries - 1:
-                # Exponential backoff: 1s, 2s, 4s
                 time.sleep(2 ** attempt)
-                db.rollback()  # Roll back the session to clear any transaction state
+                db.rollback()
                 continue
             logger.error(f"All retry attempts failed for has_taken_quiz_today: {e}")
             raise HTTPException(status_code=503, detail="Database connection failed. Please try again later.")
@@ -90,29 +87,28 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
     max_retries = 3
     for attempt in range(max_retries):
         try:
+            # Primary prompt with 10 chapters and 100-word scripts
             prompt = (
-    f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
-    f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
-    f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
-    f"a title, a brief description (1-2 sentences), specific topics (5-7 topics as a list), online resources (3-5 valid, working URLs from reputable sources like Microsoft, Google, or freeCodeCamp, aligning with current industry practices), "
-    f"a detailed script (at least 150 words) with practical real-world examples (e.g., 'In a retail company like Walmart, this SQL query might be used to track inventory...', 'At a tech company like Google, this Python script might analyze user data...', or 'In a healthcare setting like Mayo Clinic, this algorithm might predict patient outcomes...'), "
-    f"ensuring examples vary across chapters by using different industries or scenarios (e.g., retail, tech, healthcare, finance, education) for each chapter, "
-    f"a varied teaching style to avoid monotony (e.g., use storytelling, analogies, scenarios, or a conversational tone instead of standard explanations), "
-    f"and clear spacing between concepts (use '\\n\\n' to separate each major idea for readability within the JSON string), and a summary of key takeaways (2-3 sentences). "
-    f"For Chapter 1, start the script with the exact line: 'If you were wondering, yes, it was Gojo Satoru in the background image of the quiz page.' followed by '\\n\\n', then include a statement specifying the type of journey created based on the score, e.g., 'This is a Beginner to Intermediate journey,' 'This is an Intermediate to Advanced journey,' or 'This is an Advanced journey,' followed by the rest of the script content. "
-    f"**Return the response as a valid JSON object with the following structure:** "
-    f"{{'level': 'string', 'chapters': [{{'chapter': number, 'title': 'string', 'description': 'string', 'topics': ['string'], "
-    f"'resources': ['string'], 'script': 'string', 'summary': 'string'}}]}}. "
-    f"Ensure the response is enclosed in triple backticks with the 'json' identifier, like this: ```json\n{{...}}\n```."
-)
+                f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
+                f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
+                f"and create a 10-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
+                f"a title, a brief description (1-2 sentences), specific topics (5-7 topics as a list), online resources (3-5 valid, working URLs from reputable sources like Microsoft, Google, or freeCodeCamp, aligning with current industry practices), "
+                f"a detailed script (at least 100 words) with practical real-world examples (e.g., 'In a retail company like Walmart, this SQL query might be used to track inventory...', 'At a tech company like Google, this Python script might analyze user data...', or 'In a healthcare setting like Mayo Clinic, this algorithm might predict patient outcomes...'), "
+                f"ensuring examples vary across chapters by using different industries or scenarios (e.g., retail, tech, healthcare, finance, education) for each chapter, "
+                f"a varied teaching style to avoid monotony (e.g., use storytelling, analogies, scenarios, or a conversational tone instead of standard explanations), "
+                f"and clear spacing between concepts (use '\\n\\n' to separate each major idea for readability within the JSON string), and a summary of key takeaways (2-3 sentences). "
+                f"For Chapter 1 only: The script must begin with the exact line 'If you were wondering, yes, it was Gojo Satoru in the background image of the quiz page.' followed by '\\n\\n'. "
+                f"Then, include a statement specifying the type of journey created based on the score, e.g., 'This is a Beginner to Intermediate journey,' 'This is an Intermediate to Advanced journey,' or 'This is an Advanced journey,' followed by the rest of the script content. "
+                f"**Return the response as a valid JSON object with the following structure:** "
+                f"{{'level': 'string', 'chapters': [{{'chapter': number, 'title': 'string', 'description': 'string', 'topics': ['string'], "
+                f"'resources': ['string'], 'script': 'string', 'summary': 'string'}}]}}. "
+                f"Ensure the response is enclosed in triple backticks with the 'json' identifier, like this: ```json\n{{...}}\n```."
+            )
 
             data = {"contents": [{"parts": [{"text": prompt}]}]}
-            try:
-                response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=30)
-                response.raise_for_status()
-            except requests.exceptions.RequestException as e:
-                logger.error(f"API request failed: {e}")
-                raise
+            logger.info(f"Attempt {attempt + 1}: Making API request to {GEMINI_URL} with headers: {headers}")
+            response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=90)  # Increased timeout to 90 seconds
+            response.raise_for_status()
 
             # Log the raw response
             logger.info(f"Raw API Response: {response.text}")
@@ -135,18 +131,16 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
             journey_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
             logger.debug(f"Raw Journey text: {journey_text}")
 
-            # Try to find JSON within code blocks (with optional language specifier like ```json)
+            # Try to find JSON within code blocks
             json_match = re.search(r'```(?:json)?\s*\n([\s\S]*?)\n```', journey_text, re.DOTALL)
             if json_match:
                 journey_text = json_match.group(1).strip()
                 logger.debug(f"Extracted JSON text from code block: {journey_text}")
             else:
-                # If no code block, try to extract raw JSON
                 journey_text = journey_text.strip()
                 if journey_text.startswith('{') and journey_text.endswith('}'):
                     logger.debug(f"Using raw JSON text: {journey_text}")
                 else:
-                    # Try to find a JSON-like substring
                     start = journey_text.find('{')
                     end = journey_text.rfind('}') + 1
                     if start != -1 and end != 0:
@@ -170,37 +164,85 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
             db.add(api_call)
             db.commit()
 
-            # Log the generated chapters
             chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
             logger.info(f"Generated journey chapters: {chapter_numbers}")
-
             return journey
+
         except Exception as e:
             logger.exception(f"Attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(2 * (2 ** attempt))
                 continue
-            # If all attempts fail, return a placeholder journey
-            level = "Beginner" if score <= 10 else "Intermediate" if score <= 15 else "Advanced"
-            journey = {
-                "level": level,
-                "chapters": [
-                    {
-                        "chapter": i + 1,
-                        "title": f"{skill} Chapter {i + 1}",
-                        "description": f"Learn key concepts of {skill}.",
-                        "topics": ["Basics"],
-                        "resources": ["https://example.com"],
-                        "script": f"This is a placeholder script due to API failure: {str(e)}",
-                        "summary": "Key takeaways.",
-                        "completed": False
-                    } for i in range(10)
-                ]
-            }
-            # Log the placeholder chapters
-            chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
-            logger.info(f"Generated placeholder journey chapters: {chapter_numbers}")
-            return journey
+
+            # Fallback: Retry with a smaller prompt (3 chapters, 50-word scripts)
+            logger.info("Falling back to a smaller prompt due to repeated failures.")
+            try:
+                fallback_prompt = (
+                    f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
+                    f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
+                    f"and create a 3-chapter learning journey tailored to their level. Each chapter must include: a chapter number, "
+                    f"a title, a brief description (1-2 sentences), specific topics (3-5 topics as a list), online resources (2-3 valid URLs), "
+                    f"a detailed script (at least 50 words) with practical examples, and a summary of key takeaways (1-2 sentences). "
+                    f"For Chapter 1 only: The script must begin with the exact line 'If you were wondering, yes, it was Gojo Satoru in the background image of the quiz page.' followed by '\\n\\n'. "
+                    f"Then, include a statement specifying the type of journey created based on the score. "
+                    f"**Return the response as a valid JSON object with the following structure:** "
+                    f"{{'level': 'string', 'chapters': [{{'chapter': number, 'title': 'string', 'description': 'string', 'topics': ['string'], "
+                    f"'resources': ['string'], 'script': 'string', 'summary': 'string'}}]}}. "
+                    f"Ensure the response is enclosed in triple backticks with the 'json' identifier."
+                )
+
+                data = {"contents": [{"parts": [{"text": fallback_prompt}]}]}
+                logger.info(f"Fallback: Making API request to {GEMINI_URL} with headers: {headers}")
+                response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=90)
+                response.raise_for_status()
+
+                response_json = response.json()
+                journey_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+                json_match = re.search(r'```(?:json)?\s*\n([\s\S]*?)\n```', journey_text, re.DOTALL)
+                if json_match:
+                    journey_text = json_match.group(1).strip()
+
+                journey = json.loads(journey_text)
+                # Extend to 10 chapters by duplicating the 3 chapters
+                chapters = journey["chapters"]
+                extended_chapters = []
+                for i in range(10):
+                    chapter = chapters[i % 3].copy()
+                    chapter["chapter"] = i + 1
+                    chapter["completed"] = False
+                    extended_chapters.append(chapter)
+                journey["chapters"] = extended_chapters
+
+                api_call = models.ApiCall(timestamp=datetime.now())
+                db.add(api_call)
+                db.commit()
+
+                chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
+                logger.info(f"Generated fallback journey chapters: {chapter_numbers}")
+                return journey
+
+            except Exception as e:
+                logger.exception(f"Fallback attempt failed: {e}")
+                # Final fallback: Placeholder journey
+                level = "Beginner" if score <= 10 else "Intermediate" if score <= 15 else "Advanced"
+                journey = {
+                    "level": level,
+                    "chapters": [
+                        {
+                            "chapter": i + 1,
+                            "title": f"{skill} Chapter {i + 1}",
+                            "description": f"Learn key concepts of {skill}.",
+                            "topics": ["Basics"],
+                            "resources": ["https://example.com"],
+                            "script": "We couldn’t generate your learning journey due to a network issue. Please check your internet connection and try again later, or contact support if the problem persists.",
+                            "summary": "Key takeaways will be available once the journey is generated.",
+                            "completed": False
+                        } for i in range(10)
+                    ]
+                }
+                chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
+                logger.info(f"Generated placeholder journey chapters: {chapter_numbers}")
+                return journey
 
 def generate_next_chapter(db: Session, username: str, skill: str, current_chapter: int):
     logger.info(f"Starting generate_next_chapter for username={username}, skill={skill}, chapter={current_chapter}")
@@ -225,26 +267,36 @@ def generate_next_chapter(db: Session, username: str, skill: str, current_chapte
                 raise HTTPException(status_code=400, detail="No more chapters to generate")
 
             next_chapter_idx = current_chapter + 1
-            # Log the current state of chapters before proceeding
             chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
             logger.info(f"Chapters before generating next: {chapter_numbers}")
 
-            # Since the journey already has 10 chapters, return the existing next chapter
             next_chapter = journey["chapters"][next_chapter_idx]
             logger.info(f"Returning existing chapter {next_chapter['chapter']}: {next_chapter['title']}")
             return next_chapter
         except Exception as e:
             logger.exception(f"Attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(2 * (2 ** attempt))
                 continue
             raise HTTPException(status_code=500, detail="Failed to generate next chapter. Please try again later.")
 
 # Endpoints
 @app.get("/check-username/{username}")
 def check_username(username: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username.ilike(username)).first()
-    return {"exists": bool(user)}
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Checking username: {username}, attempt {attempt + 1}")
+            user = db.query(models.User).filter(models.User.username.ilike(username)).first()
+            return {"exists": bool(user)}
+        except OperationalError as e:
+            logger.warning(f"Database connection error in check_username on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                db.rollback()
+                continue
+            logger.error(f"All retry attempts failed for check_username: {e}")
+            raise HTTPException(status_code=503, detail="Database connection failed. Please try again later.")
 
 @app.get("/can-take-quiz/{username}/{skill}")
 def can_take_quiz(username: str, skill: str, db: Session = Depends(get_db)):
@@ -270,13 +322,11 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
     ).first()
     journey = generate_and_store_journey(db, username, skill, score)
     if user_skill:
-        # Update existing record
         user_skill.score = score
         user_skill.learning_journey = journey
         user_skill.progress = 0.0
         user_skill.last_attempt_date = today
     else:
-        # Create new record
         user_skill = models.UserSkill(
             username=username,
             skill=skill,
@@ -374,16 +424,33 @@ def add_questions(questions: List[Question], db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Successfully added {len(questions)} questions"}
 
-# Endpoint: Get available skills
 @app.get("/available-skills")
 def get_available_skills(db: Session = Depends(get_db)):
     skills = db.query(models.Question.skill).distinct().all()
     return {"skills": [skill[0] for skill in skills]}
 
-# Endpoint: Generate next chapter
 @app.get("/generate-next-chapter")
 def generate_next_chapter_endpoint(username: str, skill: str, current_chapter: int, db: Session = Depends(get_db)):
     return generate_next_chapter(db, username, skill, current_chapter)
+
+@app.get("/warm-up")
+def warm_up(db: Session = Depends(get_db)):
+    try:
+        # Lightweight database query to warm up the connection
+        db.query(models.User).limit(1).all()
+        logger.info("Database connection warmed up successfully.")
+        
+        # Test Gemini API with a small request
+        test_prompt = "Generate a simple response: Hello, this is a test."
+        data = {"contents": [{"parts": [{"text": test_prompt}]}]}
+        response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=30)
+        response.raise_for_status()
+        logger.info("Gemini API warmed up successfully.")
+        
+        return {"status": "Warm-up successful"}
+    except Exception as e:
+        logger.error(f"Warm-up failed: {e}")
+        return {"status": "Warm-up failed", "error": str(e)}
 
 @app.get("/")
 def read_root():
