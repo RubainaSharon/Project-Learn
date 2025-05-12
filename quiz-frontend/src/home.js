@@ -126,7 +126,7 @@ const Home = ({ username }) => {
             <FaGithub />
           </a>
           <a
-            href="https://hashnode.com/@rubainasharon"
+            href="https://projectpyai.hashnode.space/default-guide/set-vs-code"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-blue-400 transition-transform transform hover:scale-110 animate-pulse-slow"
