@@ -17,47 +17,45 @@ export default function LearningJourney() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchJourney = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
-        const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
+  const fetchJourney = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
+      const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
 
-        if (!skillData || !skillData.learning_journey) {
-          throw new Error("No learning journey found for this skill.");
-        }
-
-        const journey = skillData.learning_journey;
-
-        const isPlaceholder = journey.chapters.some(
-          (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
-        );
-
-        if (isPlaceholder) {
-          setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
-        } else {
-          setError("");
-        }
-
-        // Log the completion status of each chapter for debugging
-        console.log("Chapter completion status:", journey.chapters.map(ch => ({ chapter: ch.chapter, completed: ch.completed })));
-
-        // Find the first uncompleted chapter and set it as the current chapter
-        const firstUncompletedIndex = journey.chapters.findIndex(ch => !ch.completed);
-        const initialIndex = firstUncompletedIndex === -1 ? journey.chapters.length - 1 : firstUncompletedIndex;
-        setCurrentChapterIndex(initialIndex);
-
-        setLearningJourney(journey);
-        setLastGeneratedTime(Date.now());
-      } catch (err) {
-        console.error("Failed to fetch learning journey", err);
-        setError(err.message || "Failed to load learning journey. Please try again.");
-      } finally {
-        setLoading(false);
+      if (!skillData || !skillData.learning_journey) {
+        throw new Error("No learning journey found for this skill.");
       }
-    };
 
+      const journey = skillData.learning_journey;
+
+      const isPlaceholder = journey.chapters.some(
+        (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
+      );
+
+      if (isPlaceholder) {
+        setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
+      } else {
+        setError("");
+      }
+
+      console.log("Chapter completion status:", journey.chapters.map(ch => ({ chapter: ch.chapter, completed: ch.completed })));
+
+      const firstUncompletedIndex = journey.chapters.findIndex(ch => !ch.completed);
+      const initialIndex = firstUncompletedIndex === -1 ? journey.chapters.length - 1 : firstUncompletedIndex;
+      setCurrentChapterIndex(initialIndex);
+
+      setLearningJourney(journey);
+      setLastGeneratedTime(Date.now());
+    } catch (err) {
+      console.error("Failed to fetch learning journey", err);
+      setError(err.message || "Failed to load learning journey. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (username && skill) {
       fetchJourney();
     } else {
@@ -77,6 +75,12 @@ export default function LearningJourney() {
       const updated = { ...learningJourney };
       updated.chapters[index].completed = completed;
       setLearningJourney(updated);
+
+      // Log the updated completion status
+      console.log("After progress update - Chapter completion status:", updated.chapters.map(ch => ({ chapter: ch.chapter, completed: ch.completed })));
+
+      // Refetch journey data to ensure sync with backend
+      await fetchJourney();
 
       if (index === 9 && completed) {
         setShowCelebration(true);
