@@ -21,7 +21,10 @@ export default function LearningJourney() {
     const fetchJourney = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(https://project-learn.onrender.com/user-data/${username});
+        if (!skill) {
+          throw new Error("Skill parameter is missing.");
+        }
+        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
         const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
 
         if (!skillData || !skillData.learning_journey) {
@@ -31,7 +34,7 @@ export default function LearningJourney() {
         const journey = skillData.learning_journey;
 
         const isPlaceholder = journey.chapters.some(
-          (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
+          (chapter) => chapter.script && chapter.script.includes("We couldn’t generate your learning journey")
         );
 
         if (isPlaceholder) {
@@ -95,9 +98,9 @@ export default function LearningJourney() {
 
     if (timeSinceLastGenerated < minDelay) {
       setGenerateMessage(
-        Can be generated only after a minute. Read this chapter first. (${Math.ceil(
+        `Can be generated only after a minute. Read this chapter first. (${Math.ceil(
           (minDelay - timeSinceLastGenerated) / 1000
-        )}s remaining)
+        )}s remaining)`
       );
       setTimeout(() => {
         setGenerateMessage("");
@@ -120,7 +123,7 @@ export default function LearningJourney() {
         skill: skill,
         current_chapter: currentChapterIndex.toString() // Correct parameter name and ensure it's a string
       });
-      const url = https://project-learn.onrender.com/generate-next-chapter?${params.toString()};
+      const url = `https://project-learn.onrender.com/generate-next-chapter?${params.toString()}`;
       console.log('Constructed URL:', url); // Log URL for debugging
       const res = await axios.get(url);
       const updated = { ...learningJourney };
@@ -180,9 +183,9 @@ export default function LearningJourney() {
       <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-4 lg:gap-8 relative">
         {/* Sidebar for Chapters */}
         <aside
-          className={custom-scroll w-full sm:w-3/4 lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-auto lg:h-[calc(100vh-7rem)] overflow-y-auto lg:sticky lg:top-28 fixed top-0 left-0 sm:relative transition-transform duration-300 ease-in-out z-10 ${
+          className={`custom-scroll w-full sm:w-3/4 lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-auto lg:h-[calc(100vh-7rem)] overflow-y-auto lg:sticky lg:top-28 fixed top-0 left-0 sm:relative transition-transform duration-300 ease-in-out z-10 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
-          }}
+          }`}
           onClick={() => isSidebarOpen && toggleSidebar()}
         >
           <h2 className="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4 text-center text-purple-400 sm:block hidden">
@@ -194,9 +197,9 @@ export default function LearningJourney() {
               return (
                 <div
                   key={i}
-                  className={p-3 lg:p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
+                  className={`p-3 lg:p-4 rounded-lg cursor-pointer transition border hover:border-purple-400 ${
                     i === currentChapterIndex ? "bg-purple-800 text-white" : "bg-gray-800 text-gray-200"
-                  }}
+                  }`}
                   onClick={() => setCurrentChapterIndex(i)}
                 >
                   <h3 className="text-lg lg:text-xl font-bold">
@@ -244,9 +247,9 @@ export default function LearningJourney() {
               </p>
               <button
                 onClick={() => handleProgressUpdate(currentChapterIndex, !current.completed)}
-                className={mt-4 lg:mt-6 px-4 py-2 lg:px-6 lg:py-3 text-lg lg:text-xl rounded-lg text-white ${
+                className={`mt-4 lg:mt-6 px-4 py-2 lg:px-6 lg:py-3 text-lg lg:text-xl rounded-lg text-white ${
                   current.completed ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
-                }}
+                }`}
                 disabled={loading}
               >
                 {current.completed ? "Mark as Incomplete" : "Mark as Completed"}
@@ -255,9 +258,9 @@ export default function LearningJourney() {
                 <div className="mt-4 lg:mt-6">
                   <button
                     onClick={generateNextChapter}
-                    className={mt-2 lg:mt-4 ml-0 lg:ml-4 px-4 py-2 lg:px-6 lg:py-3 text-base lg:text-lg rounded-lg text-white ${
+                    className={`mt-2 lg:mt-4 ml-0 lg:ml-4 px-4 py-2 lg:px-6 lg:py-3 text-base lg:text-lg rounded-lg text-white ${
                       loading || generateMessage ? "bg-gray-600 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
-                    }}
+                    }`}
                     disabled={loading || generateMessage}
                   >
                     Generate Next Chapter
