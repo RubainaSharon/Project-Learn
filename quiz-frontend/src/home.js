@@ -50,7 +50,7 @@ const Home = ({ username }) => {
       "Docker",
       "Kubernetes",
     ],
-    "Business Skills": ["Stock Marketing", "Digital Marketing"],
+    "Business Skills": ["Stock Market", "Digital Marketing"],
     "Soft Skills": ["Communication Skills", "Leadership", "Time Management", "Resilience", "Adaptability"],
   };
 
