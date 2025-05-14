@@ -82,12 +82,7 @@ function App() {
         />
         <Route path="/check-quiz/:skill" element={<TakeQuizPrompt />} />
         <Route path="/quiz/:skill" element={<Quiz username={username} />} />
-        <Route
-          path="/learning-journey/:skill"
-          element={
-            username ? <LearningJourney /> : <Navigate to="/usernameprompt" replace />
-          }
-        />
+        <Route path="/learning-journey/:skill" element={<LearningJourney />} />
         <Route path="/about" element={<About username={username} />} />
         <Route path="/profile" element={<Profile username={username} />} />
         <Route path="/dashboard" element={<Dashboard username={username} />} />
