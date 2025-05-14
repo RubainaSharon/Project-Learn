@@ -102,13 +102,18 @@ const Quiz = ({ username }) => {
 
   const submitScore = async (finalScore) => {
     try {
+      if (!skill) {
+        setError("Skill parameter is missing. Please try again.");
+        return;
+      }
       await axios.post("https://project-learn.onrender.com/submit-score", {
         username,
         skill,
         score: finalScore,
       });
-      navigate(`/learning-journey/${skill}`);
+      navigate(`/learning-journey/${encodeURIComponent(skill)}`); // Ensure proper URL encoding
     } catch (error) {
+      console.error("Failed to submit score:", error);
       setError("Failed to submit score.");
     }
   };
