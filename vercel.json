@@ -14,5 +14,25 @@
       "src": "/(.*)",
       "dest": "quiz-frontend/$1"
     }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*\\.ttf)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "font/ttf"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*\\.otf)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "font/otf"
+        }
+      ]
+    }
   ]
 }
