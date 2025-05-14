@@ -1,84 +1,45 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import Navbar from "./navbar";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-const Dashboard = ({ username }) => {
-  const [userData, setUserData] = useState({ skills: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export default function Dashboard() {
+  const [skills, setSkills] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSkills = async () => {
+      const username = localStorage.getItem("username");
       try {
         const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
-        setUserData(res.data);
-        setLoading(false);
+        setSkills(res.data.skills || []);
       } catch (err) {
-        setError("Failed to load user data. Please try again later.");
-        setLoading(false);
+        console.error("Failed to fetch user data:", err);
       }
     };
-    if (username) {
-      fetchData();
-    } else {
-      setError("Username not found. Please log in again.");
-      setLoading(false);
-    }
-  }, [username]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-red-500 text-xl">{error}</p>
-      </div>
-    );
-  }
+    fetchSkills();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Navbar />
-      <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6 text-purple-400">Dashboard for {username}</h1>
-        {userData.skills.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {userData.skills.map((skillData, index) => (
-              <div key={index} className="p-4 bg-gray-800 rounded-lg shadow-lg">
-                <h2 className="text-xl font-semibold text-blue-300">{skillData.skill}</h2>
-                <p className="mt-2">Score: {skillData.score}/20</p>
-                <p>Progress: {skillData.progress.toFixed(1)}%</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  Last Attempt: {skillData.last_attempt_date || "N/A"}
-                </p>
-                <Link
-                  to={`/learning-journey/${encodeURIComponent(skillData.skill)}`}
-                  className="mt-4 inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md"
-                >
-                  View Learning Journey
-                </Link>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-400">
-            No skills data available. Start learning by taking a quiz from the{" "}
-            <Link to="/" className="text-purple-400 hover:underline">
-              Home page
+    <div className="min-h-screen bg-black text-white flex flex-col items-center py-20 px-6">
+      <h1 className="text-5xl font-extrabold mb-12 text-center">Your Dashboard</h1>
+      <div className="w-full max-w-5xl grid grid-cols-1 gap-8">
+        {skills.map((skill, index) => (
+          <div
+            key={index}
+            className="bg-gray-900 border border-gray-800 p-10 rounded-3xl text-center shadow-xl hover:scale-105 transform transition"
+          >
+            <h2 className="text-4xl font-bold text-purple-400 mb-2">{skill.skill}</h2>
+            <p className="text-xl">Score: {skill.score}</p>
+            <p className="text-lg">Level: {skill.learning_journey.level}</p>
+            <p className="text-lg">Progress: {skill.progress.toFixed(2)}%</p>
+            <Link
+              to={`/learning-journey/${skill.skill}`}
+              className="mt-4 inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-xl rounded-xl transition"
+            >
+              Continue Learning
             </Link>
-            !
-          </p>
-        )}
+          </div>
+        ))}
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
