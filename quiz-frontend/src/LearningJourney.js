@@ -17,45 +17,39 @@ export default function LearningJourney() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const fetchJourney = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
-      const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
-
-      if (!skillData || !skillData.learning_journey) {
-        throw new Error("No learning journey found for this skill.");
-      }
-
-      const journey = skillData.learning_journey;
-
-      const isPlaceholder = journey.chapters.some(
-        (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
-      );
-
-      if (isPlaceholder) {
-        setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
-      } else {
-        setError("");
-      }
-
-      console.log("Chapter completion status:", journey.chapters.map(ch => ({ chapter: ch.chapter, completed: ch.completed })));
-
-      const firstUncompletedIndex = journey.chapters.findIndex(ch => !ch.completed);
-      const initialIndex = firstUncompletedIndex === -1 ? journey.chapters.length - 1 : firstUncompletedIndex;
-      setCurrentChapterIndex(initialIndex);
-
-      setLearningJourney(journey);
-      setLastGeneratedTime(Date.now());
-    } catch (err) {
-      console.error("Failed to fetch learning journey", err);
-      setError(err.message || "Failed to load learning journey. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchJourney = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
+        const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
+
+        if (!skillData || !skillData.learning_journey) {
+          throw new Error("No learning journey found for this skill.");
+        }
+
+        const journey = skillData.learning_journey;
+
+        const isPlaceholder = journey.chapters.some(
+          (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
+        );
+
+        if (isPlaceholder) {
+          setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
+        } else {
+          setError("");
+        }
+
+        setLearningJourney(journey);
+        setLastGeneratedTime(Date.now());
+      } catch (err) {
+        console.error("Failed to fetch learning journey", err);
+        setError(err.message || "Failed to load learning journey. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (username && skill) {
       fetchJourney();
     } else {
@@ -75,12 +69,6 @@ export default function LearningJourney() {
       const updated = { ...learningJourney };
       updated.chapters[index].completed = completed;
       setLearningJourney(updated);
-
-      // Log the updated completion status
-      console.log("After progress update - Chapter completion status:", updated.chapters.map(ch => ({ chapter: ch.chapter, completed: ch.completed })));
-
-      // Refetch journey data to ensure sync with backend
-      await fetchJourney();
 
       if (index === 9 && completed) {
         setShowCelebration(true);
@@ -126,13 +114,14 @@ export default function LearningJourney() {
     try {
       setLoading(true);
       setError("");
+      // Use URLSearchParams to properly encode query parameters
       const params = new URLSearchParams({
         username: username,
         skill: skill,
-        current_chapter: currentChapterIndex.toString()
+        current_chapter: currentChapterIndex.toString() // Correct parameter name and ensure it's a string
       });
       const url = `https://project-learn.onrender.com/generate-next-chapter?${params.toString()}`;
-      console.log('Constructed URL:', url);
+      console.log('Constructed URL:', url); // Log URL for debugging
       const res = await axios.get(url);
       const updated = { ...learningJourney };
       updated.chapters[nextIndex] = res.data;
@@ -180,6 +169,7 @@ export default function LearningJourney() {
   return (
     <div className="min-h-screen bg-black text-white pt-16 px-2 pb-6 lg:pt-24 lg:px-4 lg:pb-10">
       <Navbar />
+      {/* Header with Toggle Button for Mobile */}
       <header className="bg-gray-900 p-4 flex items-center justify-between sm:hidden mb-4 rounded-lg">
         <h1 className="text-xl font-bold text-purple-400">Chapters</h1>
         <button onClick={toggleSidebar} className="text-2xl text-white">
@@ -188,6 +178,7 @@ export default function LearningJourney() {
       </header>
 
       <div className="flex flex-col lg:flex-row max-w-7xl mx-auto gap-4 lg:gap-8 relative">
+        {/* Sidebar for Chapters */}
         <aside
           className={`custom-scroll w-full sm:w-3/4 lg:w-1/3 bg-gray-900 border border-gray-800 rounded-2xl p-4 lg:p-6 space-y-3 lg:space-y-4 h-auto lg:h-[calc(100vh-7rem)] overflow-y-auto lg:sticky lg:top-28 fixed top-0 left-0 sm:relative transition-transform duration-300 ease-in-out z-10 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
@@ -220,6 +211,7 @@ export default function LearningJourney() {
           )}
         </aside>
 
+        {/* Overlay for Mobile */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 sm:hidden z-0"
@@ -227,6 +219,7 @@ export default function LearningJourney() {
           ></div>
         )}
 
+        {/* Main Content */}
         <main className="w-full sm:w-3/4 lg:w-2/3 bg-gray-900 border border-gray-800 rounded-2xl p-6 lg:p-10 shadow-xl mx-auto sm:mx-0">
           {canShow && isUnlocked ? (
             <>
