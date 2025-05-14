@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError
 from .database import SessionLocal, engine
-from . import models  # Updated to relative import
-from .schemas import QuestionList, UserScoreCreate, UpdateProgress, Question  # Updated to relative import
+from . import models  # Relative import
+from .schemas import QuestionList, UserScoreCreate, UpdateProgress, Question  # Relative import
 from pydantic import BaseModel
 from typing import List
 import requests
@@ -68,19 +68,22 @@ def has_taken_quiz_today(db: Session, username: str, skill: str):
                 models.UserSkill.username.ilike(username),
                 models.UserSkill.skill.ilike(skill)
             ).first()
-            return user_skill and user_skill.last_attempt_date == today
+            has_taken = user_skill and user_skill.last_attempt_date == today
+            logger.info(f"Checked quiz status for username={username}, skill={skill}: has_taken={has_taken}")
+            return has_taken
         except OperationalError as e:
-            logger.warning(f"Database connection error on attempt {attempt + 1}: {e}")
+            logger.warning(f"Database connection error on attempt {attempt + 1} for has_taken_quiz_today (username={username}, skill={skill}): {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
                 db.rollback()
                 continue
-            logger.error(f"All retry attempts failed for has_taken_quiz_today: {e}")
+            logger.error(f"All retry attempts failed for has_taken_quiz_today (username={username}, skill={skill}): {e}")
             raise HTTPException(status_code=503, detail="Database connection failed. Please try again later.")
 
 def get_api_calls_today(db: Session):
     today = date.today()
     count = db.query(models.ApiCall).filter(models.ApiCall.timestamp >= today).count()
+    logger.info(f"API calls today: {count}")
     return count
 
 def generate_and_store_journey(db: Session, username: str, skill: str, score: int):
@@ -106,76 +109,80 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
             )
 
             data = {"contents": [{"parts": [{"text": prompt}]}]}
-            logger.info(f"Attempt {attempt + 1}: Making API request to {GEMINI_URL} with headers: {headers}")
+            logger.info(f"Attempt {attempt + 1}: Making API request to {GEMINI_URL} with headers: {headers} for username={username}, skill={skill}")
             response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=90)  # Increased timeout to 90 seconds
             response.raise_for_status()
 
             # Log the raw response
-            logger.info(f"Raw API Response: {response.text}")
+            logger.info(f"Raw API Response for username={username}, skill={skill}: {response.text}")
 
             try:
                 response_json = response.json()
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to decode JSON from API response: {e}")
+                logger.error(f"Failed to decode JSON from API response for username={username}, skill={skill}: {e}")
                 logger.error(f"Raw API Response: {response.text}")
                 raise
 
             if "candidates" not in response_json or not response_json["candidates"]:
-                logger.error(f"Invalid API response - Missing candidates: {response_json}")
+                logger.error(f"Invalid API response - Missing candidates for username={username}, skill={skill}: {response_json}")
                 raise ValueError("Invalid API response: Missing 'candidates'")
 
             if "content" not in response_json["candidates"][0] or "parts" not in response_json["candidates"][0]["content"]:
-                logger.error(f"Invalid API response - Missing content or parts: {response_json}")
+                logger.error(f"Invalid API response - Missing content or parts for username={username}, skill={skill}: {response_json}")
                 raise ValueError("Invalid API response: Missing 'content' or 'parts'")
 
             journey_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-            logger.debug(f"Raw Journey text: {journey_text}")
+            logger.debug(f"Raw Journey text for username={username}, skill={skill}: {journey_text}")
 
             # Try to find JSON within code blocks
             json_match = re.search(r'```(?:json)?\s*\n([\s\S]*?)\n```', journey_text, re.DOTALL)
             if json_match:
                 journey_text = json_match.group(1).strip()
-                logger.debug(f"Extracted JSON text from code block: {journey_text}")
+                logger.debug(f"Extracted JSON text from code block for username={username}, skill={skill}: {journey_text}")
             else:
                 journey_text = journey_text.strip()
                 if journey_text.startswith('{') and journey_text.endswith('}'):
-                    logger.debug(f"Using raw JSON text: {journey_text}")
+                    logger.debug(f"Using raw JSON text for username={username}, skill={skill}: {journey_text}")
                 else:
                     start = journey_text.find('{')
                     end = journey_text.rfind('}') + 1
                     if start != -1 and end != 0:
                         journey_text = journey_text[start:end]
-                        logger.debug(f"Extracted potential JSON substring: {journey_text}")
+                        logger.debug(f"Extracted potential JSON substring for username={username}, skill={skill}: {journey_text}")
                     else:
-                        logger.error(f"No valid JSON found in response: {journey_text}")
+                        logger.error(f"No valid JSON found in response for username={username}, skill={skill}: {journey_text}")
                         raise ValueError("No valid JSON found")
 
             # Parse the extracted text as JSON
             try:
                 journey = json.loads(journey_text)
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to load JSON: {e}, raw text: {journey_text}")
+                logger.error(f"Failed to load JSON for username={username}, skill={skill}: {e}, raw text: {journey_text}")
                 raise
 
+            # Initialize 'completed' field for each chapter
             for chapter in journey["chapters"]:
                 chapter["completed"] = False
+
+            # Log the journey to confirm 'completed' field initialization
+            logger.info(f"Generated journey for username={username}, skill={skill}: {json.dumps(journey, indent=2)}")
 
             api_call = models.ApiCall(timestamp=datetime.now())
             db.add(api_call)
             db.commit()
 
             chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
-            logger.info(f"Generated journey chapters: {chapter_numbers}")
+            logger.info(f"Generated journey chapters for username={username}, skill={skill}: {chapter_numbers}")
             return journey
 
         except Exception as e:
-            logger.exception(f"Attempt {attempt + 1} failed: {e}")
+            logger.exception(f"Attempt {attempt + 1} failed for username={username}, skill={skill}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 * (2 ** attempt))
                 continue
 
             # Fallback: Retry with a smaller prompt (3 chapters, 50-word scripts)
-            logger.info("Falling back to a smaller prompt due to repeated failures.")
+            logger.info(f"Falling back to a smaller prompt due to repeated failures for username={username}, skill={skill}.")
             try:
                 fallback_prompt = (
                     f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
@@ -192,7 +199,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
                 )
 
                 data = {"contents": [{"parts": [{"text": fallback_prompt}]}]}
-                logger.info(f"Fallback: Making API request to {GEMINI_URL} with headers: {headers}")
+                logger.info(f"Fallback: Making API request to {GEMINI_URL} with headers: {headers} for username={username}, skill={skill}")
                 response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=90)
                 response.raise_for_status()
 
@@ -213,16 +220,19 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
                     extended_chapters.append(chapter)
                 journey["chapters"] = extended_chapters
 
+                # Log the fallback journey
+                logger.info(f"Fallback journey for username={username}, skill={skill}: {json.dumps(journey, indent=2)}")
+
                 api_call = models.ApiCall(timestamp=datetime.now())
                 db.add(api_call)
                 db.commit()
 
                 chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
-                logger.info(f"Generated fallback journey chapters: {chapter_numbers}")
+                logger.info(f"Generated fallback journey chapters for username={username}, skill={skill}: {chapter_numbers}")
                 return journey
 
             except Exception as e:
-                logger.exception(f"Fallback attempt failed: {e}")
+                logger.exception(f"Fallback attempt failed for username={username}, skill={skill}: {e}")
                 # Final fallback: Placeholder journey
                 level = "Beginner" if score <= 10 else "Intermediate" if score <= 15 else "Advanced"
                 journey = {
@@ -241,7 +251,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
                     ]
                 }
                 chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
-                logger.info(f"Generated placeholder journey chapters: {chapter_numbers}")
+                logger.info(f"Generated placeholder journey chapters for username={username}, skill={skill}: {chapter_numbers}")
                 return journey
 
 def generate_next_chapter(db: Session, username: str, skill: str, current_chapter: int):
@@ -268,13 +278,13 @@ def generate_next_chapter(db: Session, username: str, skill: str, current_chapte
 
             next_chapter_idx = current_chapter + 1
             chapter_numbers = [ch["chapter"] for ch in journey["chapters"]]
-            logger.info(f"Chapters before generating next: {chapter_numbers}")
+            logger.info(f"Chapters before generating next for username={username}, skill={skill}: {chapter_numbers}")
 
             next_chapter = journey["chapters"][next_chapter_idx]
-            logger.info(f"Returning existing chapter {next_chapter['chapter']}: {next_chapter['title']}")
+            logger.info(f"Returning existing chapter {next_chapter['chapter']}: {next_chapter['title']} for username={username}, skill={skill}")
             return next_chapter
         except Exception as e:
-            logger.exception(f"Attempt {attempt + 1} failed: {e}")
+            logger.exception(f"Attempt {attempt + 1} failed for username={username}, skill={skill}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 * (2 ** attempt))
                 continue
@@ -290,12 +300,12 @@ def check_username(username: str, db: Session = Depends(get_db)):
             user = db.query(models.User).filter(models.User.username.ilike(username)).first()
             return {"exists": bool(user)}
         except OperationalError as e:
-            logger.warning(f"Database connection error in check_username on attempt {attempt + 1}: {e}")
+            logger.warning(f"Database connection error in check_username on attempt {attempt + 1} for username={username}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
                 db.rollback()
                 continue
-            logger.error(f"All retry attempts failed for check_username: {e}")
+            logger.error(f"All retry attempts failed for check_username (username={username}): {e}")
             raise HTTPException(status_code=503, detail="Database connection failed. Please try again later.")
 
 @app.get("/can-take-quiz/{username}/{skill}")
@@ -337,6 +347,7 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
         )
         db.add(user_skill)
     db.commit()
+    logger.info(f"Score and journey updated for username={username}, skill={skill}, progress={user_skill.progress}")
     return {"message": "Score and journey updated", "journey": journey}
 
 @app.get("/user-data/{username}")
@@ -351,6 +362,11 @@ def get_user_data(username: str, db: Session = Depends(get_db)):
             "last_attempt_date": skill.last_attempt_date
         } for skill in user_skills
     ]
+    # Log the data being returned to the frontend
+    for skill_data in skills_data:
+        completed_status = [ch["chapter"] for ch in skill_data["learning_journey"]["chapters"] if ch.get("completed", False)]
+        logger.info(f"User data for username={username}, skill={skill_data['skill']}: progress={skill_data['progress']}, completed_chapters={completed_status}")
+        logger.debug(f"Full learning journey for username={username}, skill={skill_data['skill']}: {json.dumps(skill_data['learning_journey'], indent=2)}")
     return {"skills": skills_data}
 
 @app.post("/update-progress")
@@ -363,11 +379,29 @@ def update_progress(data: UpdateProgress, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User skill not found")
     journey = user_skill.learning_journey
     if 0 <= data.chapter_index < len(journey["chapters"]):
+        # Log the state before update
+        completed_before = [ch["chapter"] for ch in journey["chapters"] if ch.get("completed", False)]
+        logger.info(f"Before update for username={data.username}, skill={data.skill}, chapter_index={data.chapter_index}: completed_chapters={completed_before}")
+        
+        # Update the completed status
         journey["chapters"][data.chapter_index]["completed"] = data.completed
-        completed_count = sum(1 for ch in journey["chapters"] if ch["completed"])
-        user_skill.progress = (completed_count / len(journey["chapters"])) * 100
+        logger.info(f"Updated chapter {data.chapter_index} to completed={data.completed} for username={data.username}, skill={data.skill}")
+        
+        # Calculate progress
+        completed_count = sum(1 for ch in journey["chapters"] if ch.get("completed", False))
+        total_chapters = len(journey["chapters"])
+        user_skill.progress = (completed_count / total_chapters) * 100
         user_skill.learning_journey = journey
+        
+        # Log the state after update
+        completed_after = [ch["chapter"] for ch in journey["chapters"] if ch.get("completed", False)]
+        logger.info(f"After update for username={data.username}, skill={data.skill}: completed_count={completed_count}, total_chapters={total_chapters}, progress={user_skill.progress}, completed_chapters={completed_after}")
+        
+        # Commit to database and refresh
         db.commit()
+        db.refresh(user_skill)
+        logger.info(f"Database state after commit for username={data.username}, skill={data.skill}: progress={user_skill.progress}")
+        
         return {"message": "Progress updated"}
     raise HTTPException(status_code=400, detail="Invalid chapter index")
 
@@ -386,8 +420,9 @@ def get_questions(skill: str, db: Session = Depends(get_db)):
                 "skill": q.skill
             })
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in question ID {q.id}: {q.options}, error: {e}")
+            logger.error(f"Invalid JSON in question ID {q.id} for skill={skill}: {q.options}, error: {e}")
             raise HTTPException(status_code=500, detail=f"Invalid JSON in question data: {q.id}")
+    logger.info(f"Retrieved {len(result)} questions for skill={skill}")
     return result
 
 @app.get("/questions")
@@ -407,6 +442,7 @@ def get_all_questions(db: Session = Depends(get_db)):
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in question ID {q.id}: {q.options}, error: {e}")
             raise HTTPException(status_code=500, detail=f"Invalid JSON in question data: {q.id}")
+    logger.info(f"Retrieved {len(result)} questions from all skills")
     return result
 
 @app.post("/questions")
@@ -422,16 +458,21 @@ def add_questions(questions: List[Question], db: Session = Depends(get_db)):
         )
         db.add(db_question)
     db.commit()
+    logger.info(f"Added {len(questions)} questions to the database")
     return {"message": f"Successfully added {len(questions)} questions"}
 
 @app.get("/available-skills")
 def get_available_skills(db: Session = Depends(get_db)):
     skills = db.query(models.Question.skill).distinct().all()
-    return {"skills": [skill[0] for skill in skills]}
+    available_skills = [skill[0] for skill in skills]
+    logger.info(f"Retrieved available skills: {available_skills}")
+    return {"skills": available_skills}
 
 @app.get("/generate-next-chapter")
 def generate_next_chapter_endpoint(username: str, skill: str, current_chapter: int, db: Session = Depends(get_db)):
-    return generate_next_chapter(db, username, skill, current_chapter)
+    next_chapter = generate_next_chapter(db, username, skill, current_chapter)
+    logger.info(f"Generated next chapter for username={username}, skill={skill}, current_chapter={current_chapter}: chapter={next_chapter['chapter']}")
+    return next_chapter
 
 @app.get("/warm-up")
 def warm_up(db: Session = Depends(get_db)):
