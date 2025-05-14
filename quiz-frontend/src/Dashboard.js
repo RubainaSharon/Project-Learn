@@ -1,45 +1,50 @@
-import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import Navbar from "./navbar";
 
-export default function Dashboard() {
-  const [skills, setSkills] = useState([]);
+const Dashboard = ({ username }) => {
+  const [userData, setUserData] = useState({ skills: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchSkills = async () => {
-      const username = localStorage.getItem("username");
+    const fetchData = async () => {
       try {
-        const res = await axios.get(https://project-learn.onrender.com/user-data/${username});
-        setSkills(res.data.skills || []);
+        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
+        setUserData(res.data); // Line 13: Ensure proper syntax
+        setLoading(false);
       } catch (err) {
-        console.error("Failed to fetch user data:", err);
+        setError("Failed to load user data.");
+        setLoading(false);
       }
     };
-    fetchSkills();
-  }, []);
+    fetchData();
+  }, [username]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center py-20 px-6">
-      <h1 className="text-5xl font-extrabold mb-12 text-center">Your Dashboard</h1>
-      <div className="w-full max-w-5xl grid grid-cols-1 gap-8">
-        {skills.map((skill, index) => (
-          <div
-            key={index}
-            className="bg-gray-900 border border-gray-800 p-10 rounded-3xl text-center shadow-xl hover:scale-105 transform transition"
-          >
-            <h2 className="text-4xl font-bold text-purple-400 mb-2">{skill.skill}</h2>
-            <p className="text-xl">Score: {skill.score}</p>
-            <p className="text-lg">Level: {skill.learning_journey.level}</p>
-            <p className="text-lg">Progress: {skill.progress.toFixed(2)}%</p>
-            <Link
-              to={/learning-journey/${skill.skill}}
-              className="mt-4 inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-xl rounded-xl transition"
-            >
-              Continue Learning
-            </Link>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6">Dashboard for {username}</h1>
+        {userData.skills.length > 0 ? (
+          <div className="space-y-4">
+            {userData.skills.map((skillData, index) => (
+              <div key={index} className="p-4 bg-gray-800 rounded-lg">
+                <h2 className="text-xl font-semibold">{skillData.skill}</h2>
+                <p>Score: {skillData.score}</p>
+                <p>Progress: {skillData.progress}%</p>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <p>No skills data available. Start learning to see your progress!</p>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default Dashboard;
