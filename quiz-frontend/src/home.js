@@ -211,7 +211,7 @@ const styles = `
   }
 
   .font-nebulax {
-    font-family: 'Nebulax', sans-serif;
+    font-family: 'Nebulax', 'Segoe UI', Arial, sans-serif; /* Added fallbacks */
   }
 
   @media (max-width: 639px) {
