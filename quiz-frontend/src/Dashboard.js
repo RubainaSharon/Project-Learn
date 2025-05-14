@@ -9,7 +9,7 @@ export default function Dashboard() {
     const fetchSkills = async () => {
       const username = localStorage.getItem("username");
       try {
-        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
+        const res = await axios.get("https://project-learn.onrender.com/user-data/"+ username);
         setSkills(res.data.skills || []);
       } catch (err) {
         console.error("Failed to fetch user data:", err);
