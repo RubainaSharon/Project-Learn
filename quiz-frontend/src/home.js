@@ -126,7 +126,7 @@ const Home = ({ username }) => {
             <FaGithub />
           </a>
           <a
-            href="https://projectpyai.hashnode.space/default-guide/set-vs-code"
+            href="https://hashnode.com/@rubainasharon"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-blue-400 transition-transform transform hover:scale-110 animate-pulse-slow"
@@ -211,7 +211,7 @@ const styles = `
   }
 
   .font-nebulax {
-    font-family: 'Nebulax', 'Segoe UI', Arial, sans-serif; /* Added fallbacks */
+    font-family: 'Nebulax', sans-serif;
   }
 
   @media (max-width: 639px) {
