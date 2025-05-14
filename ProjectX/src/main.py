@@ -311,6 +311,8 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
     username = score_data.username
     skill = score_data.skill
     score = score_data.score
+    if not skill:
+        raise HTTPException(status_code=400, detail="Skill parameter is required.")
     today = date.today()
     user = db.query(models.User).filter(models.User.username.ilike(username)).first()
     if not user:
@@ -354,7 +356,7 @@ def get_user_data(username: str, db: Session = Depends(get_db)):
     return {"skills": skills_data}
 
 @app.post("/update-progress")
-def update_progress(data: UpdateProgress, db: Session = Depends(get_db)):
+def update_progress(data: UpdateProgress, db: Session = Depends(get Kakdb)):
     user_skill = db.query(models.UserSkill).filter(
         models.UserSkill.username.ilike(data.username),
         models.UserSkill.skill.ilike(data.skill)
