@@ -29,8 +29,10 @@ export default function Dashboard() {
           >
             <h2 className="text-4xl font-bold text-purple-400 mb-2">{skill.skill}</h2>
             <p className="text-xl">Score: {skill.score}</p>
-            <p className="text-lg">Level: {skill.learning_journey.level}</p>
-            <p className="text-lg">Progress: {skill.progress.toFixed(2)}%</p>
+            <p className="text-lg">Level: {skill.learning_journey?.level || "N/A"}</p>
+            <p className="text-lg">
+              Progress: {typeof skill.progress === "number" ? skill.progress.toFixed(2) : "0.00"}%
+            </p>
             <Link
               to={`/learning-journey/${skill.skill}`}
               className="mt-4 inline-block px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-xl rounded-xl transition"
