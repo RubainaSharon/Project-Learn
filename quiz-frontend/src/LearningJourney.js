@@ -42,6 +42,9 @@ export default function LearningJourney() {
 
         setLearningJourney(journey);
         setLastGeneratedTime(Date.now());
+        const lastCompletedIndex = journey.chapters.reduce(
+                (acc, ch, idx) => (ch.completed ? idx : acc),0);
+        setCurrentChapterIndex(lastCompletedIndex);
       } catch (err) {
         console.error("Failed to fetch learning journey", err);
         setError(err.message || "Failed to load learning journey. Please try again.");
