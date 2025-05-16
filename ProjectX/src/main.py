@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import OperationalError
 from .database import SessionLocal, engine
 from . import models  # Updated to relative import
@@ -367,10 +366,7 @@ def update_progress(data: UpdateProgress, db: Session = Depends(get_db)):
         journey["chapters"][data.chapter_index]["completed"] = data.completed
         completed_count = sum(1 for ch in journey["chapters"] if ch["completed"])
         user_skill.progress = (completed_count / len(journey["chapters"])) * 100
-        user_skill.learning_journey = journey
-
-        flag_modified(user_skill, "learning_journey")
-        db.commit()            
+        user_skill.learning_journey = journey           
         return {"message": "Progress updated"}
     raise HTTPException(status_code=400, detail="Invalid chapter index")
 
