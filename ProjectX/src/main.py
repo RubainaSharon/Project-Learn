@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import OperationalError
 from .database import SessionLocal, engine
 from . import models  # Updated to relative import
@@ -315,7 +316,7 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username.ilike(username)).first()
     if not user:
         db.add(models.User(username=username))
-        db.commit()
+        
     user_skill = db.query(models.UserSkill).filter(
         models.UserSkill.username.ilike(username),
         models.UserSkill.skill.ilike(skill)
@@ -336,7 +337,7 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
             last_attempt_date=today
         )
         db.add(user_skill)
-    db.commit()
+    
     return {"message": "Score and journey updated", "journey": journey}
 
 @app.get("/user-data/{username}")
@@ -367,7 +368,9 @@ def update_progress(data: UpdateProgress, db: Session = Depends(get_db)):
         completed_count = sum(1 for ch in journey["chapters"] if ch["completed"])
         user_skill.progress = (completed_count / len(journey["chapters"])) * 100
         user_skill.learning_journey = journey
-        db.commit()
+
+        flag_modified(user_skill, "learning_journey")
+        db.commit()            
         return {"message": "Progress updated"}
     raise HTTPException(status_code=400, detail="Invalid chapter index")
 
