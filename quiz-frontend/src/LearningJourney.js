@@ -40,12 +40,13 @@ export default function LearningJourney() {
           setError("");
         }
 
-        setLearningJourney(journey);
-        setLastGeneratedTime(Date.now());
-
         const nextIndex = journey.chapters.findIndex(ch => !ch.completed);
         const safeIndex = nextIndex === -1 ? journey.chapters.length - 1 : nextIndex;
+
+        setLearningJourney(journey);
         setCurrentChapterIndex(safeIndex);
+        setLastGeneratedTime(Date.now());
+
         
       } catch (err) {
         console.error("Failed to fetch learning journey", err);
