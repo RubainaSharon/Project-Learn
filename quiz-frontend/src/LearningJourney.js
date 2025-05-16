@@ -18,51 +18,56 @@ export default function LearningJourney() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const fetchJourney = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
-        const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
+  const fetchJourney = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`https://project-learn.onrender.com/user-data/${username}`);
+      const skillData = res.data.skills.find((s) => s.skill.toLowerCase() === skill.toLowerCase());
 
-        if (!skillData || !skillData.learning_journey) {
-          throw new Error("No learning journey found for this skill.");
-        }
-
-        const journey = skillData.learning_journey;
-
-        const isPlaceholder = journey.chapters.some(
-          (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
-        );
-
-        if (isPlaceholder) {
-          setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
-        } else {
-          setError("");
-        }
-
-        const nextIndex = journey.chapters.findIndex(ch => !ch.completed);
-        const safeIndex = nextIndex === -1 ? journey.chapters.length - 1 : nextIndex;
-
-        setLearningJourney(journey);
-        setCurrentChapterIndex(safeIndex);
-        setLastGeneratedTime(Date.now());
-
-        
-      } catch (err) {
-        console.error("Failed to fetch learning journey", err);
-        setError(err.message || "Failed to load learning journey. Please try again.");
-      } finally {
-        setLoading(false);
+      if (!skillData || !skillData.learning_journey) {
+        throw new Error("No learning journey found for this skill.");
       }
-    };
 
-    if (username && skill) {
-      fetchJourney();
-    } else {
-      setError("User or skill not specified.");
+      const journey = skillData.learning_journey;
+
+      // ✅ Log the fetched chapters and completion flags
+      console.log("Fetched learning journey:", journey);
+      console.log("Chapter completion flags:", journey.chapters.map((ch, i) => `Chapter ${i + 1}: ${ch.completed}`));
+
+      const isPlaceholder = journey.chapters.some(
+        (chapter) => chapter.script && chapter.script.includes("This is a placeholder script due to API failure")
+      );
+
+      if (isPlaceholder) {
+        setError("Failed to generate a learning journey due to API issues. Displaying a placeholder journey.");
+      } else {
+        setError("");
+      }
+
+      // ✅ Determine the current chapter to continue from
+      const nextIndex = journey.chapters.findIndex(ch => !ch.completed);
+      const safeIndex = nextIndex === -1 ? journey.chapters.length - 1 : nextIndex;
+
+      setLearningJourney(journey);
+      setCurrentChapterIndex(safeIndex);
+      setLastGeneratedTime(Date.now());
+
+    } catch (err) {
+      console.error("Failed to fetch learning journey", err);
+      setError(err.message || "Failed to load learning journey. Please try again.");
+    } finally {
       setLoading(false);
     }
-  }, [skill, username]);
+  };
+
+  if (username && skill) {
+    fetchJourney();
+  } else {
+    setError("User or skill not specified.");
+    setLoading(false);
+  }
+}, [skill, username]);
+
 
   const handleProgressUpdate = async (index, completed) => {
     try {
