@@ -126,7 +126,7 @@ const Home = ({ username }) => {
             <FaGithub />
           </a>
           <a
-            href="https://hashnode.com/@rubainasharon"
+            href="https://hashnode.com/docs/67d1df6177b63d999c49eff6/guide/67d1df6481a763acb884d6d6/version/67d1df6481a763acb884d6d7/page/67d1dfb96f78b426c7ce1bfd"
             target="_blank"
             rel="noopener noreferrer"
             className="text-3xl text-gray-300 hover:text-blue-400 transition-transform transform hover:scale-110 animate-pulse-slow"
