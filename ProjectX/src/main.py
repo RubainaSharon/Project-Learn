@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError
 from .database import SessionLocal, engine
-from . import models
-from .schemas import QuestionList, UserScoreCreate, UpdateProgress, Question
+from . import models  # Updated to relative import
+from .schemas import QuestionList, UserScoreCreate, UpdateProgress, Question  # Updated to relative import
 from pydantic import BaseModel
 from typing import List
 import requests
@@ -19,16 +19,19 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Optimize SQLAlchemy engine for Render
-engine.dispose()
+# Ensure the connection pool can handle dropped connections
+engine.dispose()  # Close any existing connections
 from sqlalchemy import create_engine
+# Reconfigure the engine with connection pool settings
 engine = create_engine(
-    engine.url,
-    pool_size=5,
-    max_overflow=10,
-    pool_timeout=30,
-    pool_pre_ping=True,
+    engine.url,  # Reuse the existing URL from the imported engine
+    pool_size=5,  # Small pool size for Render's free tier
+    max_overflow=10,  # Allow some overflow connections
+    pool_timeout=30,  # Wait 30 seconds for a connection
+    pool_pre_ping=True,  # Check connection health before using it
 )
 
+# Log connection pool stats on startup
 logger.info(f"Connection pool initialized: {engine.pool.status()}")
 
 app = FastAPI()
@@ -51,7 +54,7 @@ def get_db():
         db.close()
 
 # Initialize API constants
-GEMINI_API_KEY = "AIzaSyDXFJ6vfjTj8EuTCKLMbGZrylPDkyvy4PY"
+GEMINI_API_KEY = "AIzaSyDXFJ6vfjTj8EuTCKLMbGZrylPDkyvy4PY"  # Replace with your actual API key
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 headers = {"Content-Type": "application/json"}
 
@@ -84,6 +87,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
     max_retries = 3
     for attempt in range(max_retries):
         try:
+            # Primary prompt with 10 chapters and 100-word scripts
             prompt = (
                 f"Create a personalized learning journey for a {skill} learner with a quiz score of {score} out of 20. "
                 f"Based on this score, determine their skill level (Beginner: 0-10, Intermediate: 11-15, Advanced: 16-20) "
@@ -103,9 +107,10 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
 
             data = {"contents": [{"parts": [{"text": prompt}]}]}
             logger.info(f"Attempt {attempt + 1}: Making API request to {GEMINI_URL} with headers: {headers}")
-            response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=90)
+            response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=90)  # Increased timeout to 90 seconds
             response.raise_for_status()
 
+            # Log the raw response
             logger.info(f"Raw API Response: {response.text}")
 
             try:
@@ -126,6 +131,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
             journey_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
             logger.debug(f"Raw Journey text: {journey_text}")
 
+            # Try to find JSON within code blocks
             json_match = re.search(r'```(?:json)?\s*\n([\s\S]*?)\n```', journey_text, re.DOTALL)
             if json_match:
                 journey_text = json_match.group(1).strip()
@@ -144,6 +150,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
                         logger.error(f"No valid JSON found in response: {journey_text}")
                         raise ValueError("No valid JSON found")
 
+            # Parse the extracted text as JSON
             try:
                 journey = json.loads(journey_text)
             except json.JSONDecodeError as e:
@@ -167,6 +174,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
                 time.sleep(2 * (2 ** attempt))
                 continue
 
+            # Fallback: Retry with a smaller prompt (3 chapters, 50-word scripts)
             logger.info("Falling back to a smaller prompt due to repeated failures.")
             try:
                 fallback_prompt = (
@@ -195,6 +203,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
                     journey_text = json_match.group(1).strip()
 
                 journey = json.loads(journey_text)
+                # Extend to 10 chapters by duplicating the 3 chapters
                 chapters = journey["chapters"]
                 extended_chapters = []
                 for i in range(10):
@@ -214,6 +223,7 @@ def generate_and_store_journey(db: Session, username: str, skill: str, score: in
 
             except Exception as e:
                 logger.exception(f"Fallback attempt failed: {e}")
+                # Final fallback: Placeholder journey
                 level = "Beginner" if score <= 10 else "Intermediate" if score <= 15 else "Advanced"
                 journey = {
                     "level": level,
@@ -270,69 +280,7 @@ def generate_next_chapter(db: Session, username: str, skill: str, current_chapte
                 continue
             raise HTTPException(status_code=500, detail="Failed to generate next chapter. Please try again later.")
 
-# New Pydantic model for the generate-journey endpoint
-class GenerateJourneyRequest(BaseModel):
-    username: str
-    skill: str
-
-# New endpoint to generate a journey for a user and skill
-@app.post("/generate-journey")
-def generate_journey_endpoint(request: GenerateJourneyRequest, db: Session = Depends(get_db)):
-    username = request.username
-    skill = request.skill
-    today = date.today()
-
-    # Check if user skill exists
-    user_skill = db.query(models.UserSkill).filter(
-        models.UserSkill.username.ilike(username),
-        models.UserSkill.skill.ilike(skill)
-    ).first()
-
-    # If a journey already exists, return it
-    if user_skill and user_skill.learning_journey:
-        return {
-            "skill": user_skill.skill,
-            "score": user_skill.score,
-            "learning_journey": user_skill.learning_journey,
-            "progress": user_skill.progress,
-            "last_attempt_date": user_skill.last_attempt_date
-        }
-
-    # Otherwise, generate a new journey with a default score of 0
-    journey = generate_and_store_journey(db, username, skill, score=0)
-
-    # Create or update the user skill entry
-    user = db.query(models.User).filter(models.User.username.ilike(username)).first()
-    if not user:
-        db.add(models.User(username=username))
-        db.commit()
-
-    if user_skill:
-        user_skill.score = 0
-        user_skill.learning_journey = journey
-        user_skill.progress = 0.0
-        user_skill.last_attempt_date = today
-    else:
-        user_skill = models.UserSkill(
-            username=username,
-            skill=skill,
-            score=0,
-            learning_journey=journey,
-            progress=0.0,
-            last_attempt_date=today
-        )
-        db.add(user_skill)
-    db.commit()
-
-    return {
-        "skill": skill,
-        "score": 0,
-        "learning_journey": journey,
-        "progress": 0.0,
-        "last_attempt_date": today
-    }
-
-# Existing Endpoints
+# Endpoints
 @app.get("/check-username/{username}")
 def check_username(username: str, db: Session = Depends(get_db)):
     max_retries = 3
@@ -367,8 +315,7 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username.ilike(username)).first()
     if not user:
         db.add(models.User(username=username))
-        db.commit()
-
+        
     user_skill = db.query(models.UserSkill).filter(
         models.UserSkill.username.ilike(username),
         models.UserSkill.skill.ilike(skill)
@@ -389,7 +336,6 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
             last_attempt_date=today
         )
         db.add(user_skill)
-    db.commit()
     
     return {"message": "Score and journey updated", "journey": journey}
 
@@ -420,8 +366,7 @@ def update_progress(data: UpdateProgress, db: Session = Depends(get_db)):
         journey["chapters"][data.chapter_index]["completed"] = data.completed
         completed_count = sum(1 for ch in journey["chapters"] if ch["completed"])
         user_skill.progress = (completed_count / len(journey["chapters"])) * 100
-        user_skill.learning_journey = journey
-        db.commit()
+        user_skill.learning_journey = journey           
         return {"message": "Progress updated"}
     raise HTTPException(status_code=400, detail="Invalid chapter index")
 
@@ -490,9 +435,11 @@ def generate_next_chapter_endpoint(username: str, skill: str, current_chapter: i
 @app.get("/warm-up")
 def warm_up(db: Session = Depends(get_db)):
     try:
+        # Lightweight database query to warm up the connection
         db.query(models.User).limit(1).all()
         logger.info("Database connection warmed up successfully.")
         
+        # Test Gemini API with a small request
         test_prompt = "Generate a simple response: Hello, this is a test."
         data = {"contents": [{"parts": [{"text": test_prompt}]}]}
         response = requests.post(GEMINI_URL, headers=headers, json=data, timeout=30)
