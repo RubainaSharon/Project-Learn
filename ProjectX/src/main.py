@@ -317,6 +317,7 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
         db.add(models.User(username=username))
         db.add(user)
         db.commit()
+        db.refresh(user)
         
     user_skill = db.query(models.UserSkill).filter(
         models.UserSkill.username.ilike(username),
