@@ -314,7 +314,7 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
     today = date.today()
     user = db.query(models.User).filter(models.User.username.ilike(username)).first()
     if not user:
-        db.add(models.User(username=username))
+        user = models.User(username=username)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -339,6 +339,8 @@ def submit_score(score_data: UserScoreCreate, db: Session = Depends(get_db)):
             last_attempt_date=today
         )
         db.add(user_skill)
+    db.commit() 
+    db.refresh(user_skill)
     
     return {"message": "Score and journey updated", "journey": journey}
 
