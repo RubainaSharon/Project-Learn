@@ -155,14 +155,7 @@ const Home = ({ username }) => {
           >
             <FaDiscord />
           </a>
-          <a
-            href="https://youtube.com/@yourusername"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-3xl text-gray-300 hover:text-red-500 transition-transform transform hover:scale-110 animate-pulse-slow"
-          >
-            <FaYoutube />
-          </a>
+          
         </div>
       </footer>
     </div>
